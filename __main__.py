@@ -11,7 +11,7 @@ from bvbPortfolioTracker.company_reports.dto import BVB_Report_Dto, Document_Dto
 df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
 
 def load_local_report():
-    reports = BVB_Report.load_reports()
+    reports = BVB_Report.load_reports_from_local()
     data = list()
     for report in reports:
         for doc in report.documents:

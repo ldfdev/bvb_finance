@@ -108,7 +108,7 @@ def download_reports(saving_location, links):
 
 class BVB_Report:
     @staticmethod
-    def load_reports() -> list[dto.BVB_Report_Dto]:
+    def load_reports_from_local() -> list[dto.BVB_Report_Dto]:
         reports_fdlder = Path(constants.root_dir) / constants.financial_reports
         reports = list()
         for dir_entry in reports_fdlder.iterdir():
@@ -129,3 +129,7 @@ class BVB_Report:
         
         return reports
 
+    @staticmethod
+    def search_reports_on_bvb(ticker: str):
+        html_data = get_financial_reports_document_list(ticker)
+        financial_reports_links = get_reports_from_html(html_data)  
