@@ -1,4 +1,4 @@
-import dataclasses
+import dataclasses, json
 import typing
 import datetime
 import re
@@ -6,6 +6,22 @@ import logging
 import pathlib
 
 logger = logging.getLogger(__name__)
+
+
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        if isinstance(o, datetime.date) or isinstance(o, datetime.time):
+            return str(o)
+        return super().default(o)
+
+class BaseEncoderDaatclass:
+    def serialize(self):
+        str_dict = json.dumps(self, cls=JSONEncoder, indent=4, sort_keys=True)
+        return json.loads(str_dict)
 
 @dataclasses.dataclass
 class BVB_Report_Dto:
@@ -32,7 +48,7 @@ class Website_Financial_Document:
         return self.modification_time.strftime("%H:%M:%S")
 
 @dataclasses.dataclass
-class Website_Company:
+class Website_Company(BaseEncoderDaatclass):
     name: str = None
     ticker: str = None
     documents: list[Website_Financial_Document] = dataclasses.field(default_factory=list)

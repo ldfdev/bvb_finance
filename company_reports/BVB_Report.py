@@ -12,6 +12,7 @@ import typing
 import logging
 from . import constants
 from .ticker_formats import BVB_Ticker_Format
+from persist import mongo
 from . import dto
 
 logger = logging.getLogger(__name__)
@@ -166,6 +167,14 @@ class BVB_Report:
     def search_reports_on_bvb(ticker: str) -> list[dto.Website_Financial_Document]:
         html_data = get_financial_reports_document_list(ticker)
         return get_reports_from_html(html_data)
+
+    @staticmethod
+    def search_reports_on_bvb_and_save(ticker: str) -> list[dto.Website_Financial_Document]:
+        html_data = get_financial_reports_document_list(ticker)
+        documents = BVB_Report.search_reports_on_bvb(ticker)
+        company: dto.Website_Company  = get_company_from_html(html_data)
+        company.documents = documents
+        mongo.insert_website_company_document(company)
 
     @staticmethod
     def get_newer_reports_than_local(website_reports:list[dto.Website_Financial_Document],
