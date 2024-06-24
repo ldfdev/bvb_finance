@@ -25,10 +25,12 @@ def extract_financial_reports(company_ticker):
     saving_location.mkdir(parents=True, exist_ok=True)
     
     html_data = get_financial_reports_document_list(company_ticker)
-    financial_reports_links = get_reports_from_html(html_data)    
+    financial_reports = get_reports_from_html(html_data)
+
+    financial_reports_links = [f.url for f in financial_reports]
     download_reports(saving_location, financial_reports_links)
 
-def get_financial_reports_document_list(company_ticker):
+def get_financial_reports_document_list(company_ticker) -> str:
     company_financial_data_url = constants.company_financial_data_url_template.format(ticker=company_ticker)
 
     company_financial_data_html_doc = requests.get(company_financial_data_url, headers=constants.company_bvb_webpage_headers)
@@ -39,11 +41,11 @@ def get_financial_reports_document_list(company_ticker):
         print(company_financial_data_html_doc.text)
         sys.exit(-1)
 
-    return company_financial_data_html_doc
+    return company_financial_data_html_doc.text
 
-def get_reports_from_html(html_doc):
+def get_reports_from_html(html_doc: str) -> list[dto.Website_Financial_Document]:
     # SAVE the json payload from page containing all market data
-    soup = BeautifulSoup(html_doc.text, 'html.parser')
+    soup = BeautifulSoup(html_doc, 'html.parser')
     market_data = soup.findAll('table')
 
     financial_document_identofier = 'infocont24/'
@@ -58,14 +60,29 @@ def get_reports_from_html(html_doc):
     for line in table_body.findAll('td'):
         # print('*')
         # print(line)
+        base_document = dto.Website_Financial_Document()
+        description_blob = line.find("input")
+        if description_blob and  description_blob.has_attr('value'):
+            base_document.description = description_blob['value']
+            print("Found value", description_blob['value'])
+        date_time_blob = line.find("p")
+        if date_time_blob:
+            date_time_blob = date_time_blob.get_text()
+            date_time_format = "%d.%m.%Y %H:%M:%S"
+            date_time = datetime.strptime(date_time_blob, date_time_format)
+            base_document.modification_date = date_time.date()
+            base_document.modification_time = date_time.time()
+            
         for link in line.find_all("a"):
             if link.has_attr('href'):
                 # print('Link', link['href'])
-                links.append(link['href'].lstrip('/'))
+                link_document = dataclasses.replace(base_document)
+                link_document.url = link['href'].lstrip('/')
+                links.append(link_document)
     
     print('Following documents have been found')
     for link in links:
-        print(' - ', Path(link).name)
+        print(' - ', link.file_name)
 
     return links
 
@@ -130,6 +147,12 @@ class BVB_Report:
         return reports
 
     @staticmethod
-    def search_reports_on_bvb(ticker: str):
+    def search_reports_on_bvb(ticker: str) -> list[dto.Website_Financial_Document]:
         html_data = get_financial_reports_document_list(ticker)
-        financial_reports_links = get_reports_from_html(html_data)  
+        return get_reports_from_html(html_data)
+
+    @staticmethod
+    def get_newer_reports_than_local(website_reports:list[dto.Website_Financial_Document],
+                                     local_reports: list[dto.BVB_Report_Dto]) -> list[dto.Website_Financial_Document]:
+        pass
+    # def _filter()

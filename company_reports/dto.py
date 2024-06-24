@@ -3,6 +3,7 @@ import typing
 import datetime
 import re
 import logging
+import pathlib
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +11,26 @@ logger = logging.getLogger(__name__)
 class BVB_Report_Dto:
     ticker: str
     documents: list['Document_Dto'] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class Website_Financial_Document:
+    description: str = None
+    url: str = None
+    modification_date: datetime.date = None
+    modification_time: datetime.time = None
+
+    @property
+    def file_name(self) -> str:
+        if not self.url:
+            return None
+        return pathlib.Path(self.url).name
+    
+    def get_modification_date(self):
+        return self.modification_date.strftime("%d-%m-%Y")
+
+    def get_modification_time(self):
+        return self.modification_time.strftime("%H:%M:%S")
+    
 
 @dataclasses.dataclass
 class Document_Dto:
