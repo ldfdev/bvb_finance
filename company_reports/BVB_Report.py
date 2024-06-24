@@ -86,6 +86,22 @@ def get_reports_from_html(html_doc: str) -> list[dto.Website_Financial_Document]
 
     return links
 
+def get_company_from_html(html_doc: str) -> dto.Website_Company:
+    company = dto.Website_Company()
+    soup = BeautifulSoup(html_doc, 'html.parser')
+    html_document_body = soup.find('body')
+    for form in html_document_body.find_all('form'):
+        if not form.has_attr('action'):
+            continue
+        form = form['action']
+        company.ticker = form.lstrip('FinancialInstrumentsDetails.aspx?s=')
+        break
+    html_document_title = soup.find('head').find('title').get_text()
+    ticker_pos = html_document_title.find(company.ticker) + len(company.ticker)
+    company_name = html_document_title[ticker_pos:]
+    company.name = company_name.strip()
+    return company
+
 def download_data(url):
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'}
     data = requests.get(url, stream = True, headers=headers)

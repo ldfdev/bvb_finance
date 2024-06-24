@@ -30,7 +30,12 @@ class Website_Financial_Document:
 
     def get_modification_time(self):
         return self.modification_time.strftime("%H:%M:%S")
-    
+
+@dataclasses.dataclass
+class Website_Company:
+    name: str = None
+    ticker: str = None
+    documents: list[Website_Financial_Document] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
 class Document_Dto:

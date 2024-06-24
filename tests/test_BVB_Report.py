@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 import datetime
 from pathlib import Path
-from company_reports.dto import Document_Dto
+from company_reports import dto
 from company_reports import BVB_Report
 
 
@@ -124,3 +124,10 @@ class TestBVB_Report(unittest.TestCase):
         self.assertEqual(reports[15].url, 'infocont/infocont24/{}'.format(reports[15].file_name))
         self.assertEqual(reports[15].get_modification_date(), '24-04-2024')
         self.assertEqual(reports[15].get_modification_time(), '16:29:31')
+
+    def test_get_company_from_html(self):
+        html_doc = load_resource_file(BIO_data)
+        company: dto.Website_Company = BVB_Report.get_company_from_html(html_doc)
+
+        self.assertEqual(company.ticker, 'BIO')
+        self.assertEqual(company.name, 'BIOFARM S.A.')
