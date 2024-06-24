@@ -131,3 +131,51 @@ class TestBVB_Report(unittest.TestCase):
 
         self.assertEqual(company.ticker, 'BIO')
         self.assertEqual(company.name, 'BIOFARM S.A.')
+
+    def test_get_newer_reports_than_local(self):
+        common_files = [
+            "common_file_1",
+            "common_file_2",
+            "common_file_2",
+            "common_file_3"
+        ]
+
+        files_present_on_disk_only = [
+            "disk_file_1",
+            "disk_file_1",
+            "disk_file_2"
+        ]
+
+        new_files = [
+            "new_file_1",
+            "new_file_2"
+        ]
+
+        def create_website_financial_document(files: list[str]):
+            result = []
+            for file in files:
+                doc = dto.Website_Financial_Document()
+                doc.url = file
+                result.append(doc)
+            return result
+        
+        def create_document_dto(files: list[str]):
+            result = []
+            for file in files:
+                doc = dto.Document_Dto()
+                doc.file_name = file
+                result.append(doc)
+            return result
+        
+        website_company: dto.Website_Company = dto.Website_Company()
+        website_company.ticker = 'ABC'
+        website_company.documents = create_website_financial_document(common_files + new_files)
+
+        local_report = dto.BVB_Report_Dto(ticker='abC.ro')
+        local_report.documents = create_document_dto(common_files + files_present_on_disk_only)
+
+        resulted_document = BVB_Report.BVB_Report.get_newer_reports_than_local(website_company, local_report)
+
+        self.assertFalse(resulted_document is None)
+        self.assertEqual(len(resulted_document.documents), len(new_files))
+        self.assertEqual(set([doc.file_name for doc in resulted_document.documents]), set(new_files))

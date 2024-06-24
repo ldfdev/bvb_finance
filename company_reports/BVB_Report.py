@@ -170,14 +170,28 @@ class BVB_Report:
 
     @staticmethod
     def search_reports_on_bvb_and_save(ticker: str) -> list[dto.Website_Financial_Document]:
+        company = BVB_Report.retrieve_website_company_data(ticker)
+        mongo.insert_website_company_document(company)
+
+    @staticmethod
+    def retrieve_website_company_data(ticker: str) -> dto.Website_Company:
         html_data = get_financial_reports_document_list(ticker)
         documents = BVB_Report.search_reports_on_bvb(ticker)
         company: dto.Website_Company  = get_company_from_html(html_data)
         company.documents = documents
-        mongo.insert_website_company_document(company)
+        return company
 
     @staticmethod
-    def get_newer_reports_than_local(website_reports:list[dto.Website_Financial_Document],
-                                     local_reports: list[dto.BVB_Report_Dto]) -> list[dto.Website_Financial_Document]:
-        pass
-    # def _filter()
+    def get_newer_reports_than_local(website_company_data: dto.Website_Company,
+                                     local_report: dto.BVB_Report_Dto) -> dto.Website_Company:
+        
+        if BVB_Ticker_Format.get_ticker(website_company_data.ticker) != BVB_Ticker_Format.get_ticker(local_report.ticker):
+            logger.warn("Cannot compare company data for different tickers: website_company_data ticker {} and local report ticker {}", 
+                        website_company_data.ticker, local_report.ticker)
+            return
+        old_files = set([doc.file_name for doc in local_report.documents])
+        new_docs = [doc for doc in website_company_data.documents if doc.file_name not in old_files]
+
+        new_website_company_data = dataclasses.replace(local_report)
+        new_website_company_data.documents =new_docs
+        return new_website_company_data
