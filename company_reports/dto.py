@@ -5,6 +5,8 @@ import re
 import logging
 import pathlib
 
+import datetime_conventions
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,10 +44,10 @@ class Website_Financial_Document:
         return pathlib.Path(self.url).name
     
     def get_modification_date(self):
-        return self.modification_date.strftime("%d-%m-%Y")
+        return self.modification_date.strftime(datetime_conventions.date_dormat)
 
     def get_modification_time(self):
-        return self.modification_time.strftime("%H:%M:%S")
+        return self.modification_time.strftime(datetime_conventions.time_format)
 
 @dataclasses.dataclass
 class Website_Company(BaseEncoderDaatclass):

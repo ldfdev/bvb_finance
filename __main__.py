@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 
 import datetime
-
-from bvbPortfolioTracker.company_reports.BVB_Report import BVB_Report
-from bvbPortfolioTracker.company_reports.dto import BVB_Report_Dto, Document_Dto
+from . import datetime_conventions
+from .company_reports.BVB_Report import BVB_Report
+from .company_reports.dto import BVB_Report_Dto, Document_Dto
 
 # Incorporate data
 df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
@@ -15,7 +15,7 @@ def load_local_report():
     data = list()
     for report in reports:
         for doc in report.documents:
-            line = [report.ticker, doc.file_name, doc.modification_date.strftime("%Y-%m-%d")]
+            line = [report.ticker, doc.file_name, doc.modification_date.strftime(datetime_conventions.date_dormat)]
             data.append(line)
     report_df = pd.DataFrame(data, columns=['Ticker', 'Report', 'Raport Date'])
     print(report_df)

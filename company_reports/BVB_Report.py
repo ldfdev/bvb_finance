@@ -14,6 +14,7 @@ from . import constants
 from .ticker_formats import BVB_Ticker_Format
 from persist import mongo
 from . import dto
+import datetime_conventions
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def get_reports_from_html(html_doc: str) -> list[dto.Website_Financial_Document]
         date_time_blob = line.find("p")
         if date_time_blob:
             date_time_blob = date_time_blob.get_text()
-            date_time_format = "%d.%m.%Y %H:%M:%S"
+            date_time_format = datetime_conventions.date_time_format
             date_time = datetime.strptime(date_time_blob, date_time_format)
             base_document.modification_date = date_time.date()
             base_document.modification_time = date_time.time()

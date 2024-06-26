@@ -1,5 +1,6 @@
 from pathlib import Path
 
+bvb_finance = 'bvb-finance'
 root_dir = Path('/home/loxor/Documents/Programming/Python/stocks')
 financial_reports = 'financial_reports'
 download_url = 'https://m.bvb.ro/'
