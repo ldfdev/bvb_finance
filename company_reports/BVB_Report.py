@@ -12,9 +12,9 @@ import typing
 import logging
 from . import constants
 from .ticker_formats import BVB_Ticker_Format
-from persist import mongo
+from bvb_finance.persist import mongo
 from . import dto
-import datetime_conventions
+import bvb_finance.datetime_conventions
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from . import db_constants
-from company_reports import dto
+from bvb_finance.company_reports import dto
 import logging
 
 __all__ = [
