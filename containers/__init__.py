@@ -2,9 +2,9 @@ import pathlib
 import subprocess
 import docker
 import datetime
-from company_reports import constants
-from persist import db_constants
-import datetime_conventions
+from bvb_finance.company_reports import constants
+from bvb_finance.persist import db_constants
+from bvb_finance import datetime_conventions
 import pathlib
 import os
 
@@ -48,7 +48,10 @@ def start_mongo_container():
     cmd = f'docker run -d -p 27017:27017 -v {host_path.as_posix()}:/{container_path}:rw --rm --name {mongo_conrainer} mongo'
     subprocess.run(cmd, shell=True, check=True)
 
-def export_mongo_container_db():
+def export_mongo_container_db() -> str:
+    '''
+    return the file to which database content has been exported
+    '''
     if not is_container_running(mongo_conrainer):
         return
     container = get_container(mongo_conrainer)
@@ -57,3 +60,4 @@ def export_mongo_container_db():
     json_file = json_file.as_posix()
     cmd = f'mongoexport --uri=mongodb://localhost/{db_constants.bvb_companies_db_name} --collection={db_constants.bvb_companies_collection}  --out={json_file}'
     container.exec_run(cmd)
+    return (host_path / json_file.name).as_posix()

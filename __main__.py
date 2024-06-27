@@ -5,6 +5,7 @@ import plotly.express as px
 import datetime
 from . import datetime_conventions
 from .company_reports.BVB_Report import BVB_Report
+from . import layouts
 from .company_reports.dto import BVB_Report_Dto, Document_Dto
 
 # Incorporate data
@@ -24,11 +25,16 @@ def load_local_report():
 # Initialize the app
 app = Dash()
 
+# Company tickers layout
+company_tickers_layout = layouts.get_company_tickers_layout()
+
 # App layout
 app.layout = [
     html.Div(children='My First App with Data'),
     html.Hr(),
+    company_tickers_layout,
     dcc.RadioItems(options=['pop', 'lifeExp', 'gdpPercap'], value='pop', id='controls-and-radio-item'),
+    layouts.get_button_to_save_db_content(),
     html.Div([
         dcc.DatePickerRange(
             id='my-date-picker-range',
