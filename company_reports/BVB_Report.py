@@ -14,7 +14,7 @@ from . import constants
 from .ticker_formats import BVB_Ticker_Format
 from bvb_finance.persist import mongo
 from . import dto
-import bvb_finance.datetime_conventions
+from  bvb_finance import datetime_conventions
 
 logger = logging.getLogger(__name__)
 

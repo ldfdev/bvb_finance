@@ -5,7 +5,7 @@ import re
 import logging
 import pathlib
 
-import bvb_finance.datetime_conventions
+from  bvb_finance import datetime_conventions
 
 logger = logging.getLogger(__name__)
 
