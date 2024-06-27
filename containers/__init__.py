@@ -57,7 +57,6 @@ def export_mongo_container_db() -> str:
     container = get_container(mongo_conrainer)
     now = datetime.datetime.now()
     json_file = pathlib.Path(container_path) / f'{db_constants.bvb_companies_collection}.{now.strftime(datetime_conventions.date_time_file_format)}.json'
-    json_file = json_file.as_posix()
-    cmd = f'mongoexport --uri=mongodb://localhost/{db_constants.bvb_companies_db_name} --collection={db_constants.bvb_companies_collection}  --out={json_file}'
+    cmd = f'mongoexport --uri=mongodb://localhost/{db_constants.bvb_companies_db_name} --collection={db_constants.bvb_companies_collection}  --out={json_file.as_posix()}'
     container.exec_run(cmd)
     return (host_path / json_file.name).as_posix()

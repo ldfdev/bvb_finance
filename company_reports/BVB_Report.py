@@ -170,9 +170,10 @@ class BVB_Report:
         return get_reports_from_html(html_data)
 
     @staticmethod
-    def search_reports_on_bvb_and_save(ticker: str) -> list[dto.Website_Financial_Document]:
+    def search_reports_on_bvb_and_save(ticker: str) -> dto.Website_Company:
         company = BVB_Report.retrieve_website_company_data(ticker)
         mongo.insert_website_company_document(company)
+        return company
 
     @staticmethod
     def retrieve_website_company_data(ticker: str) -> dto.Website_Company:

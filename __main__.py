@@ -7,6 +7,7 @@ from . import datetime_conventions
 from .company_reports.BVB_Report import BVB_Report
 from . import layouts
 from .company_reports.dto import BVB_Report_Dto, Document_Dto
+from . import containers
 
 # Incorporate data
 df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
@@ -25,16 +26,12 @@ def load_local_report():
 # Initialize the app
 app = Dash()
 
-# Company tickers layout
-company_tickers_layout = layouts.get_company_tickers_layout()
-
 # App layout
 app.layout = [
     html.Div(children='My First App with Data'),
     html.Hr(),
-    company_tickers_layout,
-    dcc.RadioItems(options=['pop', 'lifeExp', 'gdpPercap'], value='pop', id='controls-and-radio-item'),
-    layouts.get_button_to_save_db_content(),
+    layouts.get_company_tickers_layout(),
+    layouts.get_radio_button_to_search_for_company_reports(),
     html.Div([
         dcc.DatePickerRange(
             id='my-date-picker-range',
@@ -46,7 +43,8 @@ app.layout = [
         html.Div(id='output-container-date-picker-range')
     ]),
     dash_table.DataTable(
-        data=load_local_report(),
+        id='company-reports-table',
+        data=[],
         page_size=10,
         style_header={
             'backgroundColor': 'rgb(30, 30, 30)',
@@ -64,23 +62,11 @@ app.layout = [
                 'color': 'black'
             }
         ],
-        # style_header={
-        #         'backgroundColor': 'rgb(210, 210, 210)',
-        #         'color': 'black',
-        #         'fontWeight': 'bold'
-        #     }
-        ),
-    dcc.Graph(figure={}, id='controls-and-graph')
+    ),
+    layouts.get_button_to_save_db_content(),
 ]
-
-@callback(
-    Output(component_id='controls-and-graph', component_property='figure'),
-    Input(component_id='controls-and-radio-item', component_property='value')
-)
-def update_graph(col_chosen):
-    fig = px.histogram(df, x='continent', y=col_chosen, histfunc='avg')
-    return fig
 
 # Run the app
 if __name__ == '__main__':
+    containers.start_mongo_container()
     app.run(debug=True)
