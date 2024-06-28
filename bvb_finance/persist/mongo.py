@@ -2,12 +2,13 @@ from pymongo import MongoClient
 from . import db_constants
 from bvb_finance.company_reports import dto
 import logging
+import bvb_finance
 
 __all__ = [
     'insert_website_company_document'
 ]
 
-logger = logging.getLogger(__name__)
+logger = bvb_finance.getLogger()
 
 client = MongoClient("localhost", 27017)
 

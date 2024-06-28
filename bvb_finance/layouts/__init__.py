@@ -8,8 +8,9 @@ from bvb_finance.company_reports.BVB_Report import BVB_Report
 from bvb_finance.company_reports import dto
 from bvb_finance import containers
 from bvb_finance import datetime_conventions
+import bvb_finance
 
-logger = logging.getLogger(__name__)
+logger = bvb_finance.getLogger()
 
 # Company tickers layout
 def get_company_tickers_layout():
@@ -30,7 +31,7 @@ def get_button_to_save_db_content():
 )
 def update_output(n_clicks):
     file_path = containers.export_mongo_container_db()
-    return 'Database content has been exported to {}'.formay(
+    return 'Database content has been exported to {}'.format(
         file_path
     )
 
@@ -80,12 +81,13 @@ def pick_range(user_option):
  
 
 def search_reports_on_bvb_and_save(start_date, end_date):
-
+    logger.info(f'Searching for reports between start_date {start_date} and end_date {end_date}')
     tickers = portfolio_loader.load_portfolio_tickers()
     data = list()
     failures = []
     for ticker in tickers:
         try:
+            logger.info(f'Collecting Website_Company data for ticker {ticker}')
             report: dto.Website_Company = BVB_Report.search_reports_on_bvb_and_save(ticker)
             for doc in report.documents:
                 if doc.modification_date < start_date.date():
@@ -95,10 +97,13 @@ def search_reports_on_bvb_and_save(start_date, end_date):
                 line = [report.ticker, doc.file_name, doc.modification_date.strftime(datetime_conventions.date_dormat)]
                 data.append(line)
         except Exception as exc:
-            logger.warn(f'Failed to get data for {ticker}', exc)
+            logger.warning(f'Failed to gather Website_Company data for {ticker}', exc)
             failures.append(ticker)
 
     report_df = pd.DataFrame(data, columns=['Ticker', 'Report', 'Raport Date'])
-    print(report_df)
-    logger.warning("These tickers were failed to process:", failures)
+    logger.info(f'Search reports on bvb completed for the following tickers: {tickers}.' +
+                f'\n gathered data:\n{report_df}')
+    
+    if len(failures) > 0:
+        logger.warning(f"These tickers were failed to process: {failures}")
     return report_df.to_dict('records'), failures

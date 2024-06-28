@@ -15,14 +15,15 @@ from .ticker_formats import BVB_Ticker_Format
 from bvb_finance.persist import mongo
 from . import dto
 from  bvb_finance import datetime_conventions
+import bvb_finance
 
-logger = logging.getLogger(__name__)
+logger = bvb_finance.getLogger()
 
 def extract_financial_reports(company_ticker):    
-    print('Processing', company_ticker)
-    print(constants.root_dir, constants.financial_reports, company_ticker)
+    logger.info('Processing', company_ticker)
+    logger.info(constants.root_dir, constants.financial_reports, company_ticker)
     saving_location = Path(constants.root_dir) / constants.financial_reports / BVB_Ticker_Format.get_ticker(company_ticker)
-    print(f'Saving location {saving_location}')
+    logger.info(f'Saving location {saving_location}')
     
     saving_location.mkdir(parents=True, exist_ok=True)
     
@@ -38,9 +39,9 @@ def get_financial_reports_document_list(company_ticker) -> str:
     company_financial_data_html_doc = requests.get(company_financial_data_url, headers=constants.company_bvb_webpage_headers)
 
     if HTTPStatus.OK != company_financial_data_html_doc.status_code:
-        print(f'Could not company financial_data_url data for {company_financial_data_html_doc}')
-        print(company_financial_data_html_doc.headers)
-        print(company_financial_data_html_doc.text)
+        logger.warning(f'Could not company financial_data_url data for {company_financial_data_html_doc}')
+        logger.warning(company_financial_data_html_doc.headers)
+        logger.warning(company_financial_data_html_doc.text)
         sys.exit(-1)
 
     return company_financial_data_html_doc.text
@@ -60,13 +61,11 @@ def get_reports_from_html(html_doc: str) -> list[dto.Website_Financial_Document]
     table_body = financial_data_table.find('tbody')
     links = []
     for line in table_body.findAll('td'):
-        # print('*')
-        # print(line)
         base_document = dto.Website_Financial_Document()
         description_blob = line.find("input")
         if description_blob and  description_blob.has_attr('value'):
             base_document.description = description_blob['value']
-            print("Found value", description_blob['value'])
+            # print("Found value", description_blob['value'])
         date_time_blob = line.find("p")
         if date_time_blob:
             date_time_blob = date_time_blob.get_text()
@@ -77,14 +76,13 @@ def get_reports_from_html(html_doc: str) -> list[dto.Website_Financial_Document]
             
         for link in line.find_all("a"):
             if link.has_attr('href'):
-                # print('Link', link['href'])
                 link_document = dataclasses.replace(base_document)
                 link_document.url = link['href'].lstrip('/')
                 links.append(link_document)
     
-    print('Following documents have been found')
-    for link in links:
-        print(' - ', link.file_name)
+    logger.info(f'Following {len(links)} documents have been found')
+    for i, link in enumerate(links, start=1):
+        logger.info(f'{i:>3d}:{link.file_name}')
 
     return links
 
@@ -109,16 +107,16 @@ def download_data(url):
     data = requests.get(url, stream = True, headers=headers)
 
     if HTTPStatus.OK != data.status_code:
-        print(f'Dowloading {url} failed')
-        print(data.headers)
-        print(data.text)
+        logger.warning(f'Dowloading {url} failed')
+        logger.warning(data.headers)
+        logger.warning(data.text)
         return
     return data.content
 
 def save_data_to_disk(data, file_path):
     # SAVE the whole html page
     if Path(file_path).exists():
-        print(f'File {file_path} already exsists.')
+        logger.info(f'File {file_path} already exsists.')
         return
     with open(file_path, 'wb') as file:
         file.write(data)
@@ -135,7 +133,7 @@ def download_reports(saving_location, links):
         data = download_data(constants.download_url + link.lstrip(os.sep))
         if data is None:
             continue
-        print(f'Saving {Path(link).name}')
+        logger.info(f'Saving {Path(link).name}')
         save_data_to_disk(data, Path(saving_location) / (Path(link).name))
 
 
@@ -153,7 +151,7 @@ class BVB_Report:
             new_report = dto.BVB_Report_Dto(ticker)
 
             report_files = [f for f in (reports_fdlder / dir_entry.name).iterdir() if f.is_file()]
-            print(f"Scanned {dir_entry.name} and found reports: {report_files}")
+            logger.info(f"Scanned {dir_entry.name} and found reports: {report_files}")
             for rf in report_files:
                 d = dto.Document_Dto.initialize(rf.name)
                 
@@ -188,8 +186,7 @@ class BVB_Report:
                                      local_report: dto.BVB_Report_Dto) -> dto.Website_Company:
         
         if BVB_Ticker_Format.get_ticker(website_company_data.ticker) != BVB_Ticker_Format.get_ticker(local_report.ticker):
-            logger.warn("Cannot compare company data for different tickers: website_company_data ticker {} and local report ticker {}", 
-                        website_company_data.ticker, local_report.ticker)
+            logger.warn(f"Cannot compare company data for different tickers: website_company_data ticker {website_company_data.ticker} and local report ticker {local_report.ticker}")
             return
         old_files = set([doc.file_name for doc in local_report.documents])
         new_docs = [doc for doc in website_company_data.documents if doc.file_name not in old_files]

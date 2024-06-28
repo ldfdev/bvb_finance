@@ -5,11 +5,10 @@ import re
 import logging
 import pathlib
 
-from  bvb_finance import datetime_conventions
+from bvb_finance import datetime_conventions
+import bvb_finance
 
-logger = logging.getLogger(__name__)
-
-
+logger = bvb_finance.getLogger()
 
 
 class JSONEncoder(json.JSONEncoder):

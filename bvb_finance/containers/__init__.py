@@ -7,6 +7,10 @@ from bvb_finance.persist import db_constants
 from bvb_finance import datetime_conventions
 import pathlib
 import os
+import logging
+import bvb_finance
+
+logger = bvb_finance.getLogger()
 
 container_path = '/docker_files'
 host_path = pathlib.Path(constants.root_dir) / (container_path.strip(os.sep))
@@ -46,7 +50,8 @@ def start_mongo_container():
     clear_exited_container(mongo_conrainer)
     create_container_path()
     cmd = f'docker run -d -p 27017:27017 -v {host_path.as_posix()}:/{container_path}:rw --rm --name {mongo_conrainer} mongo'
-    subprocess.run(cmd, shell=True, check=True)
+    result = subprocess.run(cmd, shell=True, check=True, capture_output=True)
+    logger.info(f"Started mongo container {result.stdout.decode()}")
 
 def export_mongo_container_db() -> str:
     '''
