@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import patch
 import datetime
 from pathlib import Path
-from company_reports import dto
-from company_reports import BVB_Report
+from bvb_finance.company_reports import dto
+from bvb_finance.company_reports import BVB_Report
 
 
 BIO_data = 'bvb_company_BIO_webpage.html'

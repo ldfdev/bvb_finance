@@ -1,5 +1,5 @@
 import unittest
-from company_reports import dto
+from bvb_finance.company_reports import dto
 import datetime
 
 class TestWebsite_Company(unittest.TestCase):

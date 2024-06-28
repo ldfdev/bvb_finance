@@ -1,6 +1,6 @@
 import unittest
 import datetime
-from company_reports.dto import Document_Dto
+from bvb_finance.company_reports .dto import Document_Dto
 
 class TestDocument_Dto(unittest.TestCase):
     def test_initialization(self):

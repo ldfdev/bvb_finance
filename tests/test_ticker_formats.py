@@ -1,5 +1,5 @@
 import unittest
-from company_reports.ticker_formats import BVB_Ticker_Format
+from bvb_finance.company_reports .ticker_formats import BVB_Ticker_Format
 
 class TestTickerFormats(unittest.TestCase):
     def test_BVB_Ticker_Format_new_ticker(self):
