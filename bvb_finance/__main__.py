@@ -56,6 +56,7 @@ app.layout = [
     html.Hr(),
     layouts.get_company_tickers_layout(),
     layouts.get_radio_bar_to_search_for_company_reports(),
+    layouts.get_component_to_load_db_snapshot(),
     html.Div([
         dcc.DatePickerRange(
             id='my-date-picker-range',

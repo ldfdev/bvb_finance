@@ -15,6 +15,7 @@ __all__ = [
     'get_company_tickers_layout',
     'get_button_to_save_db_content',
     'get_radio_bar_to_search_for_company_reports',
+    'get_component_to_load_db_snapshot',
 ]
 
 logger = bvb_finance.getLogger()
@@ -41,7 +42,7 @@ def get_button_to_save_db_content():
     dash.Input(component_id='save-db-button', component_property='n_clicks'),
     prevent_initial_call=True
 )
-def update_output(n_clicks):
+def get_button_to_save_db_content_callback(n_clicks):
     file_path = containers.export_mongo_container_db()
     return 'Database content has been exported to {}'.format(
         file_path
@@ -65,13 +66,39 @@ def get_radio_bar_to_search_for_company_reports():
         ]),
     ])
 
+def load_db_snapshots_from_local_storage() -> list[str]:
+    return containers.load_exported_data()
+
+def get_component_to_load_db_snapshot():
+    return dash.html.Div([
+        dash.html.Div(id='db_snapshot-div',
+                 children='Load database snapshot'),
+        dash.html.Div(id='db_snapshot-failures-div'),
+        dash.dcc.RadioItems(options=[file for file in load_db_snapshots_from_local_storage()], id='db_snapshot-radiobar'),
+        dash.html.Div([
+            dash.html.Button('Confirm choice', id='db_snapshot-confirm-choice-button', n_clicks=0)
+        ]),
+    ])
+
+
+@dash.callback(
+    dash.Output(component_id='db_snapshot-failures-div', component_property='children'),
+    dash.Input(component_id='db_snapshot-radiobar', component_property='value'),
+    dash.Input(component_id='db_snapshot-confirm-choice-button', component_property='n_clicks'),
+    prevent_initial_call=True,
+    running=[dash.Output(component_id='db_snapshot-confirm-choice-button', component_property='disabled'), True, False]
+)
+def get_component_to_load_db_snapshot_callback(db_snapshot_file, n_clicks):
+    return [f'Database snapshot {db_snapshot_file} will be used']
+
+
 @dash.callback(
     dash.Output(component_id='radio-bar-failures-div', component_property='children', allow_duplicate=True),
     dash.Output(component_id='radio-bar-retry-failed-button', component_property='disabled', allow_duplicate=True),
     dash.Input(component_id='radio-bar-retry-failed-button', component_property='n_clicks'),
     prevent_initial_call=True
 )
-def run_retry_logic(n_clicks):
+def get_radio_bar_to_search_for_company_reports_run_retry_logic_callback(n_clicks):
     failures = []
     return (_display_failures_message(failures), True)
 
@@ -85,7 +112,7 @@ def run_retry_logic(n_clicks):
     prevent_initial_call=True,
     running=[dash.Output(component_id='radio-bar-confirm-choice-button', component_property='disabled'), True, False]
 )
-def pick_range(user_option: RadioButtonRange, n_clicks: int):
+def get_radio_bar_to_search_for_company_reports_callback(user_option: RadioButtonRange, n_clicks: int):
     def _display_formatted_date(start_date_time, end_date_time):
         return 'You have chosen start date {} & end date {}'.format(
             start_date_time.strftime(datetime_conventions.date_time_format),
@@ -120,7 +147,7 @@ def pick_range(user_option: RadioButtonRange, n_clicks: int):
         _display_failures_message(failures),
         False
     ]
- 
+
 def _display_failures_message(failures: list[str]):
     if len(failures) == 0:
         return 'There are no failures'

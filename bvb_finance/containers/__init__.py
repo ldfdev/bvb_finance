@@ -8,6 +8,7 @@ from bvb_finance import datetime_conventions
 import pathlib
 import os
 import logging
+import typing
 import bvb_finance
 
 logger = bvb_finance.getLogger()
@@ -65,3 +66,6 @@ def export_mongo_container_db() -> str:
     cmd = f'mongoexport --uri=mongodb://localhost/{db_constants.bvb_companies_db_name} --collection={db_constants.bvb_companies_collection}  --out={json_file.as_posix()}'
     container.exec_run(cmd)
     return (host_path / json_file.name).as_posix()
+
+def load_exported_data() -> typing.Iterable[str]:
+    return [file.name for file in host_path.iterdir() if file.is_file()]
