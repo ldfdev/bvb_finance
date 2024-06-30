@@ -55,7 +55,7 @@ app.layout = [
     html.Div(children='My First App with Data'),
     html.Hr(),
     layouts.get_company_tickers_layout(),
-    layouts.get_radio_button_to_search_for_company_reports(),
+    layouts.get_radio_bar_to_search_for_company_reports(),
     html.Div([
         dcc.DatePickerRange(
             id='my-date-picker-range',
