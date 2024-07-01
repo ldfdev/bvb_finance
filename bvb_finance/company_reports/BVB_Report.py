@@ -124,17 +124,33 @@ def save_data_to_disk(data, file_path):
 def get_downloaded_files(saving_location):
     return [x for x in Path(saving_location).iterdir() if x.is_file()]
 
-def download_reports(saving_location, links):
+def download_reports(saving_location: Path, links: list[str]) -> list[str]:
+    def _files_to_str(files: list[str]) -> str:
+        return '\n' + '\n'.join(files)
+    
+    logger.info(f"Downloading reports to {saving_location.as_posix()}")
     downloaded_files = get_downloaded_files(saving_location)
 
     new_files = [link for link in links if Path(link).name not in downloaded_files]
+    already_downloaded_files = [link for link in links if Path(link).name not in new_files]
     
+    logger.info(f"Skipping some files which are already downloaded: {_files_to_str(already_downloaded_files)}")
+    logger.info(f"These new files will be downloaded: {_files_to_str(new_files)}")
+    
+    failures = []
+
     for link in new_files:
-        data = download_data(constants.download_url + link.lstrip(os.sep))
-        if data is None:
-            continue
-        logger.info(f'Saving {Path(link).name}')
-        save_data_to_disk(data, Path(saving_location) / (Path(link).name))
+        try:
+            data = download_data(constants.download_url + link.lstrip(os.sep))
+            if data is None:
+                continue
+            logger.info(f'Saving {Path(link).name}')
+            save_data_to_disk(data, Path(saving_location) / (Path(link).name))
+        except Exception as exc:
+            logger.warning(f"Failed to downoad {link}. Error: ", exc)
+            failures.append(link)
+
+    return failures
 
 
 
@@ -169,7 +185,8 @@ class BVB_Report:
 
     @staticmethod
     def search_report_on_bvb_and_save(ticker: str) -> dto.Website_Company:
-        company = BVB_Report.retrieve_website_company_data(ticker)
+        company: dto.Website_Company = BVB_Report.retrieve_website_company_data(ticker)
+        logger.info(f"SUccessfully colelcted Website_Company for ticker {ticker}: {company}")
         mongo.insert_website_company_document(company)
         return company
 
@@ -198,3 +215,23 @@ class BVB_Report:
         new_website_company_data = dataclasses.replace(local_report)
         new_website_company_data.documents =new_docs
         return new_website_company_data
+    
+    @staticmethod
+    def download_all_report_files(reports: typing.Iterable[dto.Website_Company]) -> list[list[str]]:
+        # decide how to report failures
+        # support presenting in UI the failures
+        # adnd add retry button
+        failures = []
+        for report in reports:
+            saving_location = Path(constants.root_dir) / constants.financial_reports / BVB_Ticker_Format.get_ticker(report.ticker)
+            logger.info(f'Saving location {saving_location}')
+    
+            saving_location.mkdir(parents=True, exist_ok=True)
+
+            files = [doc.url for doc in report.documents]
+
+            report_failures: list[str] = download_reports(saving_location, files)
+
+            if len(report_failures) > 0:
+                failures.append([report.ticker])
+                failures.append(report_failures)

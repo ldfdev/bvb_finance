@@ -17,6 +17,7 @@ __all__ = [
     'get_radio_bar_to_search_for_company_reports',
     'get_component_to_load_db_snapshot',
     'get_table',
+    'get_button_to_save_all_report_files_from_db_to_disk',
 ]
 
 logger = bvb_finance.getLogger()
@@ -25,6 +26,11 @@ logger = bvb_finance.getLogger()
 Failures: typing.TypeAlias = list[str]
 DataframeFailuresTuple: typing.TypeAlias = typing.Tuple[pd.DataFrame, Failures]
 WebsitecompanyFailuresTuple: typing.TypeAlias = typing.Tuple[typing.Iterable[dto.Website_Company], Failures]
+
+# caches
+reports_cache: list[dto.Website_Company] = list()
+
+
 
 # Company tickers layout
 def get_company_tickers_layout():
@@ -36,6 +42,12 @@ def get_button_to_save_db_content():
         dash.html.Button('Export Database content', id='save-db-button', n_clicks=0),
         dash.html.Div(id='save-db-button-notification-ui',
                 children='Click to export database content')
+    ])
+
+def get_button_to_save_all_report_files_from_db_to_disk():
+    return dash.html.Div([
+        dash.html.Button('Save all reports', id='save-reports-button', n_clicks=0),
+        dash.html.Div(id='save-reports-notification-ui')
     ])
 
 @dash.callback(
@@ -118,6 +130,10 @@ def get_component_to_load_db_snapshot_callback(db_snapshot_file, n_clicks):
     
     containers.import_db_snapshot_to_mongo(db_snapshot_file)
     reports: list[dto.Website_Company] = BVB_Report.load_reports_from_mongo()
+    
+    for report in reports:
+        reports_cache.append(report)
+    
     reports_df: pd.DataFrame = convert_website_company_collection_to_dataframe(reports)
     return [
         f'Database snapshot {db_snapshot_file} has been used',
@@ -168,11 +184,11 @@ def get_radio_bar_to_search_for_company_reports_callback(user_option: RadioButto
     elif user_option == RadioButtonRange.this_month.value:
         start_date_time = datetime.datetime(now.year, now.month, day=1, hour=0, minute=0, second=0)
     
-    # company_data, failures = search_reports_on_bvb_and_save(start_date_time, end_date_time)
-    company_data = convert_website_company_collection_to_dataframe([
-        dto.Website_Company(name='Demo', ticker='DEMO', documents = [])
-    ])
-    failures = ['ABC']
+    company_data, failures = search_reports_on_bvb_and_save(start_date_time, end_date_time)
+    # company_data = convert_website_company_collection_to_dataframe([
+    #     dto.Website_Company(name='Demo', ticker='DEMO', documents = [])
+    # ])
+    # failures = ['ABC']
 
     return [
         company_data,
@@ -180,6 +196,25 @@ def get_radio_bar_to_search_for_company_reports_callback(user_option: RadioButto
         _display_failures_message(failures),
         False
     ]
+
+@dash.callback(
+    dash.Output(component_id='save-reports-notification-ui', component_property='children'),
+    dash.Input(component_id='save-reports-button', component_property='n_clicks'),
+    prevent_initial_call=True,
+    running=[dash.Output(component_id='save-reports-button', component_property='disabled'), True, False]
+)
+def get_button_to_save_all_report_files_from_db_to_disk_callback(n_clicks):
+    reports: set[dto.Website_Company] = reports_cache
+    failures = BVB_Report.download_all_report_files(reports)
+    tickers = failures[::2]
+    failured_filers_per_ticker = failures[1::2]
+    failure_message = []
+    for ticker, failed_files in zip(tickers, failured_filers_per_ticker):
+        lines = [f'{i:>4}: {file}' for (i, file) in enumerate(failed_files, start=1)]
+        message = f'\nTicker {ticker}\n' + '\n'.join(lines)
+        failure_message.append(message)
+    return ['\n'.join(failure_message),]
+
 
 def _display_failures_message(failures: list[str]):
     if len(failures) == 0:
@@ -195,6 +230,8 @@ def get_reports_from_tickers(tickers: list[str]) -> WebsitecompanyFailuresTuple:
         try:
             report: dto.Website_Company = BVB_Report.search_report_on_bvb_and_save(ticker)
             reports.append(report)
+            # may not be accurate to append. maybe teh report is already present
+            reports_cache.append(report)
         except Exception as exc:
             logger.warning(f'Failed to gather Website_Company data for {ticker}', exc)
             failures.append(ticker)

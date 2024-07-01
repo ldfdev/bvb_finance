@@ -24,11 +24,16 @@ def insert_website_company_document(company_data: dto.Website_Company):
     # actually db_document is plain Python dict
     db_document: typing.Dict = bvb_companies_collection.find_one({'ticker': company_data.ticker})
     if (db_document is None):
+        logger.info(f"Inserting new document {company_data_dict}")
         bvb_companies_collection.insert_one(company_data_dict)
         return
     docs = [doc for doc in company_data_dict['documents'] if doc not in db_document['documents']]
     if len(docs) > 0:
-        logger.info(f"Updating {company_data_dict['description']} with {docs}")
+        logger.info("Updating ticker: {} description: {} with documents: {}".format(
+            company_data_dict.get('ticker', 'No ticker available'),
+            company_data_dict.get('name', 'No name available'),
+            docs,
+        ))
     db_document['documents'].extend(docs)
     bvb_companies_collection.update_one({"_id": db_document["_id"]}, { "$set": { 'documents': db_document['documents'] } })
 
