@@ -15,14 +15,20 @@ class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
-        if isinstance(o, datetime.date) or isinstance(o, datetime.time):
-            return str(o)
+        if isinstance(o, datetime.date):
+            return o.strftime(datetime_conventions.date_dormat)
+        if isinstance(o, datetime.time):
+            return o.strftime(datetime_conventions.time_format)
         return super().default(o)
 
-class BaseEncoderDaatclass:
+class MongoDao:
     def serialize(self):
         str_dict = json.dumps(self, cls=JSONEncoder, indent=4, sort_keys=True)
         return json.loads(str_dict)
+
+    @staticmethod
+    def deserialize(mongo_object: typing.Dict):
+        raise NotImplementedError
 
 @dataclasses.dataclass
 class BVB_Report_Dto:
@@ -30,7 +36,7 @@ class BVB_Report_Dto:
     documents: list['Document_Dto'] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
-class Website_Financial_Document:
+class Website_Financial_Document(MongoDao):
     description: str = None
     url: str = None
     modification_date: datetime.date = None
@@ -48,11 +54,34 @@ class Website_Financial_Document:
     def get_modification_time(self):
         return self.modification_time.strftime(datetime_conventions.time_format)
 
+    @staticmethod
+    def deserialize(mongo_object: typing.Dict) -> 'Website_Financial_Document':
+        py_object = Website_Financial_Document()
+        py_object.description = mongo_object['description']
+        date_time_f = "%Y-%m-%d%H:%M:%S"
+        date_time_obj: datetime.datetime = datetime.datetime.strptime(mongo_object['modification_date'] + mongo_object['modification_time'],
+                                                                      date_time_f)
+        py_object.modification_date = date_time_obj.date()
+        py_object.modification_time = date_time_obj.time()
+        py_object.url = mongo_object['url']
+        return py_object
+
 @dataclasses.dataclass
-class Website_Company(BaseEncoderDaatclass):
+class Website_Company(MongoDao):
     name: str = None
     ticker: str = None
     documents: list[Website_Financial_Document] = dataclasses.field(default_factory=list)
+
+    @staticmethod
+    def deserialize(mongo_object: typing.Dict) -> 'Website_Company':
+        py_object = Website_Financial_Document()
+        py_object.name = mongo_object['name']
+        py_object.ticker = mongo_object['ticker']
+        py_object.documents = [
+            Website_Financial_Document.deserialize(serialized)
+            for serialized in mongo_object['documents']
+        ]
+        return py_object
 
 @dataclasses.dataclass
 class Document_Dto:

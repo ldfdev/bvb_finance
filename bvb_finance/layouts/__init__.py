@@ -16,6 +16,7 @@ __all__ = [
     'get_button_to_save_db_content',
     'get_radio_bar_to_search_for_company_reports',
     'get_component_to_load_db_snapshot',
+    'get_table',
 ]
 
 logger = bvb_finance.getLogger()
@@ -80,16 +81,48 @@ def get_component_to_load_db_snapshot():
         ]),
     ])
 
+def get_table():
+    return dash.dash_table.DataTable(
+        id='company-reports-table',
+        data=[],
+        page_size=40,
+        style_header={
+            'backgroundColor': 'rgb(30, 30, 30)',
+            'color': 'white',
+            'fontWeight': 'bold'
+        },
+        style_data={
+            'backgroundColor': 'rgb(50, 50, 50)',
+            'color': 'white'
+        },
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(94, 194, 219)',
+                'color': 'black'
+            }
+        ],
+    )
 
 @dash.callback(
     dash.Output(component_id='db_snapshot-failures-div', component_property='children'),
+    dash.Output(component_id='company-reports-table', component_property='data', allow_duplicate=True),
     dash.Input(component_id='db_snapshot-radiobar', component_property='value'),
     dash.Input(component_id='db_snapshot-confirm-choice-button', component_property='n_clicks'),
     prevent_initial_call=True,
     running=[dash.Output(component_id='db_snapshot-confirm-choice-button', component_property='disabled'), True, False]
 )
 def get_component_to_load_db_snapshot_callback(db_snapshot_file, n_clicks):
-    return [f'Database snapshot {db_snapshot_file} will be used']
+    if 'db_snapshot-confirm-choice-button' != dash.ctx.triggered_id:
+        return dash.no_update
+    
+    containers.import_db_snapshot_to_mongo(db_snapshot_file)
+    reports: list[dto.Website_Company] = BVB_Report.load_reports_from_mongo()
+    reports_df: pd.DataFrame = convert_website_company_collection_to_dataframe(reports)
+    return [
+        f'Database snapshot {db_snapshot_file} has been used',
+        reports_df,
+    ]
 
 
 @dash.callback(
@@ -103,7 +136,7 @@ def get_radio_bar_to_search_for_company_reports_run_retry_logic_callback(n_click
     return (_display_failures_message(failures), True)
 
 @dash.callback(
-    dash.Output(component_id='company-reports-table', component_property='data'),
+    dash.Output(component_id='company-reports-table', component_property='data', allow_duplicate=True),
     dash.Output(component_id='radio-bar-user-option-div', component_property='children'),
     dash.Output(component_id='radio-bar-failures-div', component_property='children', allow_duplicate=True),
     dash.Output(component_id='radio-bar-retry-failed-button', component_property='disabled', allow_duplicate=True),
@@ -160,7 +193,7 @@ def get_reports_from_tickers(tickers: list[str]) -> WebsitecompanyFailuresTuple:
     for ticker in tickers:
         logger.info(f'Collecting Website_Company data for ticker {ticker}')
         try:
-            report: dto.Website_Company = BVB_Report.search_reports_on_bvb_and_save(ticker)
+            report: dto.Website_Company = BVB_Report.search_report_on_bvb_and_save(ticker)
             reports.append(report)
         except Exception as exc:
             logger.warning(f'Failed to gather Website_Company data for {ticker}', exc)

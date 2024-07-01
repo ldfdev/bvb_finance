@@ -67,27 +67,7 @@ app.layout = [
         ),
         html.Div(id='output-container-date-picker-range')
     ]),
-    dash_table.DataTable(
-        id='company-reports-table',
-        data=[],
-        page_size=10,
-        style_header={
-            'backgroundColor': 'rgb(30, 30, 30)',
-            'color': 'white',
-            'fontWeight': 'bold'
-        },
-        style_data={
-            'backgroundColor': 'rgb(50, 50, 50)',
-            'color': 'white'
-        },
-        style_data_conditional=[
-            {
-                'if': {'row_index': 'odd'},
-                'backgroundColor': 'rgb(220, 220, 220)',
-                'color': 'black'
-            }
-        ],
-    ),
+    layouts.get_table(),
     layouts.get_button_to_save_db_content(),
 ]
 

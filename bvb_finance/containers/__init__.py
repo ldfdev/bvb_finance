@@ -69,3 +69,14 @@ def export_mongo_container_db() -> str:
 
 def load_exported_data() -> typing.Iterable[str]:
     return [file.name for file in host_path.iterdir() if file.is_file()]
+
+def import_db_snapshot_to_mongo(snapshot_file: str):
+    snapshot_file_host_path = host_path / snapshot_file
+    if not snapshot_file_host_path.exists():
+        logger.warning(f"{snapshot_file} does not exist. import_db_snapshot_to_mongo aborted")
+        return
+    logger.info(f"import_db_snapshot_to_mongo: importing snapshot from {snapshot_file}")
+    snapshot_file_container_path = pathlib.Path(container_path) / snapshot_file
+    container = get_container(mongo_conrainer)
+    cmd = f'mongoimport --uri=mongodb://localhost/{db_constants.bvb_companies_db_name} --collection={db_constants.bvb_companies_collection}  --file={snapshot_file_container_path.as_posix()}'
+    container.exec_run(cmd)
