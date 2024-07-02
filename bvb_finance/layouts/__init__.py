@@ -237,19 +237,22 @@ def get_reports_from_tickers(tickers: list[str]) -> WebsitecompanyFailuresTuple:
             failures.append(ticker)
     return (reports, failures,)
 
-def filter_reports_based_on_date(reports: typing.Iterable[dto.Website_Company], start_date, end_date) -> typing.Iterable[dto.Website_Company]:
+def filter_reports_based_on_date(reports: typing.Iterable[dto.Website_Company],
+                                 start_date: datetime.datetime,
+                                 end_date: datetime.datetime) -> typing.Iterable[dto.Website_Company]:
     filtered_reports = list()
     for report in reports:
-        filtered_report: dto.Website_Company = dataclasses.replace(report)
-        filtered_report.documents.clear()
+        filtered_report: dto.Website_Company = dataclasses.replace(report, documents=list())
         for doc in report.documents:
             if doc.modification_date < start_date.date():
                 logger.info(f"Skipping document {report.ticker}:{doc.file_name} as it is older than {start_date.date()}")
                 continue
             filtered_report.documents.append(doc)
+        if len(filtered_report.documents) > 0:
+            filtered_reports.append(filtered_report)
     return filtered_reports
 
-def search_reports_on_bvb_and_save(start_date, end_date) -> DataframeFailuresTuple:
+def search_reports_on_bvb_and_save(start_date: datetime.datetime, end_date: datetime.datetime) -> DataframeFailuresTuple:
     logger.info(f'Searching for reports between start_date {start_date} and end_date {end_date}')
     tickers = portfolio_loader.load_portfolio_tickers()
     reports, failures = get_reports_from_tickers(tickers)

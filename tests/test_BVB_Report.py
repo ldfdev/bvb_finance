@@ -174,8 +174,11 @@ class TestBVB_Report(unittest.TestCase):
         local_report = dto.BVB_Report_Dto(ticker='abC.ro')
         local_report.documents = create_document_dto(common_files + files_present_on_disk_only)
 
+        local_report_documents = [doc for doc in local_report.documents]
         resulted_document = BVB_Report.BVB_Report.get_newer_reports_than_local(website_company, local_report)
 
         self.assertFalse(resulted_document is None)
         self.assertEqual(len(resulted_document.documents), len(new_files))
         self.assertEqual(set([doc.file_name for doc in resulted_document.documents]), set(new_files))
+
+        self.assertEqual(local_report.documents, local_report_documents)
