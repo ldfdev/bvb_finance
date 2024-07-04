@@ -162,4 +162,4 @@ cython_debug/
 #.idea/
 
 # metadata about the companies that is user specific
-resources/
+/resources/

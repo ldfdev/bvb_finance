@@ -94,7 +94,7 @@ def get_company_from_html(html_doc: str) -> dto.Website_Company:
         if not form.has_attr('action'):
             continue
         form = form['action']
-        company.ticker = form.lstrip('FinancialInstrumentsDetails.aspx?s=')
+        company.ticker = form.split('FinancialInstrumentsDetails.aspx?s=')[1]
         break
     html_document_title = soup.find('head').find('title').get_text()
     ticker_pos = html_document_title.find(company.ticker) + len(company.ticker)

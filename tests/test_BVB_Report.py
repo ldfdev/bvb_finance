@@ -7,6 +7,7 @@ from bvb_finance.company_reports import BVB_Report
 
 
 BIO_data = 'bvb_company_BIO_webpage.html'
+DIGI_data = 'bvb_company_DIGI_webpage.html'
 resources = 'resources'
 
 def load_resource_file(file_name) -> str:
@@ -131,6 +132,13 @@ class TestBVB_Report(unittest.TestCase):
 
         self.assertEqual(company.ticker, 'BIO')
         self.assertEqual(company.name, 'BIOFARM S.A.')
+
+    def test_get_company_from_html_digi(self):
+        html_doc = load_resource_file(DIGI_data)
+        company: dto.Website_Company = BVB_Report.get_company_from_html(html_doc)
+
+        self.assertEqual(company.ticker, 'DIGI')
+        self.assertEqual(company.name, 'Digi Communications N.V.')
 
     def test_get_newer_reports_than_local(self):
         common_files = [
