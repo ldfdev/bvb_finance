@@ -235,3 +235,4 @@ class BVB_Report:
             if len(report_failures) > 0:
                 failures.append([report.ticker])
                 failures.append(report_failures)
+        return failures

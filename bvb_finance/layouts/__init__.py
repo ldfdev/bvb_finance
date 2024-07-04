@@ -114,6 +114,9 @@ def get_table():
                 'color': 'black'
             }
         ],
+        sort_action="native",
+        sort_mode="multi",
+        sort_by=[],
     )
 
 @dash.callback(
@@ -177,10 +180,7 @@ def get_radio_bar_to_search_for_company_reports_callback(user_option: RadioButto
     if user_option == RadioButtonRange.today.value:
         start_date_time = datetime.datetime(now.year, now.month, now.day, hour=0, minute=0, second=0)
     elif user_option == RadioButtonRange.this_week.value:
-        first_week_day = datetime.datetime(now.year, now.month, now.weekday(), hour=0, minute=0, second=0)
-        while (first_week_day + datetime.timedelta(days=7)).day <= now.day:
-            first_week_day += datetime.timedelta(days=7)
-        start_date_time = first_week_day
+        start_date_time = datetime.datetime(now.year, now.month, now.day, hour=0, minute=0, second=0) - datetime.timedelta(days=now.weekday())
     elif user_option == RadioButtonRange.this_month.value:
         start_date_time = datetime.datetime(now.year, now.month, day=1, hour=0, minute=0, second=0)
     
