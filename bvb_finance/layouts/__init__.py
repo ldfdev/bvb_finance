@@ -17,6 +17,7 @@ __all__ = [
     'get_radio_bar_to_search_for_company_reports',
     'get_component_to_load_db_snapshot',
     'get_table',
+    'get_company_reports_table',
     'get_button_to_save_all_report_files_from_db_to_disk',
 ]
 
@@ -118,6 +119,11 @@ def get_table():
         sort_mode="multi",
         sort_by=[],
     )
+
+def get_company_reports_table():
+    table = get_table()
+    table.id = 'company-reports-table'
+    return table
 
 @dash.callback(
     dash.Output(component_id='db_snapshot-failures-div', component_property='children'),

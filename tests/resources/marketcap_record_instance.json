@@ -1,0 +1,46 @@
+{
+    "simbol":"H2O",
+    "nume":"SOCIETATEA DE PRODUCERE A ENERGIEI ELECTRICE IN HIDROCENTRALE  HIDROELECTRICA S.A.",
+    "pret":"127,4000",
+    "capitalizare":57304847036,
+    "divy":"13,990000",
+    "anDividenend":"07.06.2024",
+    "divyAnual":"10,98",
+    "anDivY":"2023",
+    "volum1y":"44.205.018",
+    "var1y":"",
+    "var7d":"2,08",
+    "var1sapt":"0,39",
+    "evolutie":[
+        {
+            "time":1689120000,
+            "value":110
+        },
+        {
+            "time":1689552000,
+            "value":111.8
+        },
+        {
+            "time":1720483200,
+            "value":127.4
+        },
+        {
+            "time":1720483200,
+            "value":127.4
+        }
+    ],
+    "vp":{
+        "2023":{
+            "V":"12,1 mld.",
+            "P":"6,3 mld."
+        },
+        "T1 2024":{
+            "V":"2,53 mld.",
+            "P":"1,32 mld.",
+            "var1":"-22",
+            "var2":"-23"
+        },
+        "cat":"energie"
+    },
+    "poz":1
+}

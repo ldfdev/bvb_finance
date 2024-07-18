@@ -67,10 +67,15 @@ app.layout = [
         ),
         html.Div(id='output-container-date-picker-range')
     ]),
-    layouts.get_table(),
+    layouts.get_company_reports_table(),
     layouts.get_button_to_save_db_content(),
     layouts.get_button_to_save_all_report_files_from_db_to_disk(),
 ]
+
+@app.server.route("/marketcap")
+def hello_world():
+    return "<p>Hello, World! marketcap</p>"
+
 
 # Run the app
 if __name__ == '__main__':
@@ -81,5 +86,5 @@ if __name__ == '__main__':
     containers.start_mongo_container()
     app.server.logger.addHandler(fh)
     app.server.logger.addHandler(ch)
-        
+
     app.run(debug=True)
