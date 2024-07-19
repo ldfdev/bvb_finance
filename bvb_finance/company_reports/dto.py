@@ -16,7 +16,7 @@ class JSONEncoder(json.JSONEncoder):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         if isinstance(o, datetime.date):
-            return o.strftime(datetime_conventions.date_dormat)
+            return o.strftime(datetime_conventions.date_format)
         if isinstance(o, datetime.time):
             return o.strftime(datetime_conventions.time_format)
         return super().default(o)
@@ -49,7 +49,7 @@ class Website_Financial_Document(MongoDao):
         return pathlib.Path(self.url).name
     
     def get_modification_date(self):
-        return self.modification_date.strftime(datetime_conventions.date_dormat)
+        return self.modification_date.strftime(datetime_conventions.date_format)
 
     def get_modification_time(self):
         return self.modification_time.strftime(datetime_conventions.time_format)

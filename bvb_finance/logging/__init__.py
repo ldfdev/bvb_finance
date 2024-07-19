@@ -23,7 +23,8 @@ ch.setFormatter(formatter)
 fh.setFormatter(formatter)
 
 logger.addHandler(fh)
-logger.addHandler(ch)
+# log lines are duplicate if ch is not commented
+# logger.addHandler(ch)
 
 def getLogger():
     return logger

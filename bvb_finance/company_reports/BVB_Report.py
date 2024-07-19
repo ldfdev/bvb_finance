@@ -157,7 +157,7 @@ def load_local_report():
     data = list()
     for report in reports:
         for doc in report.documents:
-            line = [report.ticker, doc.file_name, doc.modification_date.strftime(datetime_conventions.date_dormat)]
+            line = [report.ticker, doc.file_name, doc.modification_date.strftime(datetime_conventions.date_format)]
             data.append(line)
     report_df = pd.DataFrame(data, columns=['Ticker', 'Report', 'Raport Date'])
     logger.debug(report_df)

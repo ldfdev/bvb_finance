@@ -255,7 +255,7 @@ def convert_website_company_collection_to_dataframe(website_company_iter: typing
             data.append([
                 report.ticker,
                 doc.file_name,
-                doc.modification_date.strftime(datetime_conventions.date_dormat)
+                doc.modification_date.strftime(datetime_conventions.date_format)
             ])
     report_df = pd.DataFrame(data, columns=['Ticker', 'Report', 'Data Raport'])
     logger.info(f'gathered data:\n{report_df}')

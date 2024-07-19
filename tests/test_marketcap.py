@@ -1,7 +1,8 @@
 import unittest
 import logging
+import datetime
 from bvb_finance.marketcap import dto as marketcapdto
-from bvb_finance.marketcap import bvb_rader
+from bvb_finance.marketcap import bvb_radar
 from . import load_resource_file
 
 logger = logging.getLogger(__name__)
@@ -28,11 +29,11 @@ class TestMarketcap(unittest.TestCase):
 
     def test_parse_market_cap_data(self):
         raw_str_company_market_cap_webpage = load_resource_file("bvb_companies_by_market_cap.html")
-        companies: list[marketcapdto.CompanyMarketCap] = bvb_rader.parse_market_cap_data(raw_str_company_market_cap_webpage)
+        companies: list[marketcapdto.CompanyMarketCap] = bvb_radar.parse_market_cap_data(raw_str_company_market_cap_webpage)
 
         self.assertEqual(len(companies), 84)
 
-        pandas_data = bvb_rader.convert_market_cap_data_to_df(companies)
+        pandas_data = bvb_radar.convert_market_cap_data_to_df(companies)
         self.assertEqual(len(pandas_data), 84)
         for dict_ in pandas_data:
             self.assertIn('Ticker', dict_.keys())
@@ -40,3 +41,13 @@ class TestMarketcap(unittest.TestCase):
             self.assertIn('Pret', dict_.keys())
             self.assertIn('Capitalizare', dict_.keys())
             self.assertIn('Var 7 zile', dict_.keys())
+
+    def test_parse_market_cap_modification_date(self):
+        raw_str_company_market_cap_webpage = load_resource_file("bvb_companies_by_market_cap.html")
+        data: datetime.datetime = bvb_radar.parse_market_cap_modification_date(raw_str_company_market_cap_webpage)
+        self.assertEqual(data.year, 2024)
+        self.assertEqual(data.month, 7)
+        self.assertEqual(data.day, 9)
+        self.assertEqual(data.hour, 15)
+        self.assertEqual(data.minute, 23)
+        self.assertEqual(data.second, 34)

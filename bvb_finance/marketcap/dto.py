@@ -1,5 +1,6 @@
 import typing
 import json
+import pandas as pd
 
 class Evolutie(typing.TypedDict):
     time: int
@@ -33,3 +34,10 @@ class CompanyMarketCap(DictConverter):
     def from_str(s: str) -> 'CompanyMarketCap':
         dict_ = json.loads(s)
         return CompanyMarketCap(dict_)
+
+class MarketCapDataUiPayloadDict(typing.TypedDict):
+    modofication_date: str
+    data: pd.DataFrame
+
+class MarketCapDataUiPayload(DictConverter):
+    pass
