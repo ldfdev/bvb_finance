@@ -1,4 +1,4 @@
-from . import constants
+from .. import constants
 
 class BVB_Ticker_Format:
     @staticmethod

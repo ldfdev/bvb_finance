@@ -1,8 +1,10 @@
 import unittest
-import requests
+import logging
 from bvb_finance.marketcap import dto as marketcapdto
 from bvb_finance.marketcap import bvb_rader
 from . import load_resource_file
+
+logger = logging.getLogger(__name__)
 
 class TestMarketcap(unittest.TestCase):
     def test_CompanyMarketCap_conversion_from_str(self):
@@ -29,3 +31,12 @@ class TestMarketcap(unittest.TestCase):
         companies: list[marketcapdto.CompanyMarketCap] = bvb_rader.parse_market_cap_data(raw_str_company_market_cap_webpage)
 
         self.assertEqual(len(companies), 84)
+
+        pandas_data = bvb_rader.convert_market_cap_data_to_df(companies)
+        self.assertEqual(len(pandas_data), 84)
+        for dict_ in pandas_data:
+            self.assertIn('Ticker', dict_.keys())
+            self.assertIn('Nume', dict_.keys())
+            self.assertIn('Pret', dict_.keys())
+            self.assertIn('Capitalizare', dict_.keys())
+            self.assertIn('Var 7 zile', dict_.keys())

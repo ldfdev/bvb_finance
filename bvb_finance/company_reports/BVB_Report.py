@@ -9,15 +9,15 @@ from datetime import datetime
 import pandas as pd
 import dataclasses
 import typing
-import logging
-from . import constants
+from .. import constants
 from .ticker_formats import BVB_Ticker_Format
 from bvb_finance.persist import mongo
 from . import dto
 from  bvb_finance import datetime_conventions
 import bvb_finance
+from bvb_finance import logging
 
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 def extract_financial_reports(company_ticker):    
     logger.info('Processing', company_ticker)
@@ -152,7 +152,16 @@ def download_reports(saving_location: Path, links: list[str]) -> list[str]:
 
     return failures
 
-
+def load_local_report():
+    reports = BVB_Report.load_reports_from_local()
+    data = list()
+    for report in reports:
+        for doc in report.documents:
+            line = [report.ticker, doc.file_name, doc.modification_date.strftime(datetime_conventions.date_dormat)]
+            data.append(line)
+    report_df = pd.DataFrame(data, columns=['Ticker', 'Report', 'Raport Date'])
+    logger.debug(report_df)
+    return report_df.to_dict('records')
 
 
 class BVB_Report:

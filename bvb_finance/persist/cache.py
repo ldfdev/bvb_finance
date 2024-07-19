@@ -1,7 +1,8 @@
 from bvb_finance.company_reports import dto
 import bvb_finance
+from bvb_finance import logging
 
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 class Cache:
     def __init__(self):

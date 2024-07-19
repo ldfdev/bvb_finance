@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from . import db_constants
 from bvb_finance.company_reports import dto
-import logging
+from bvb_finance import logging
 import typing
 import bvb_finance
 
@@ -11,7 +11,7 @@ __all__ = [
     'find_all_website_company_documents',
 ]
 
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 client = MongoClient("localhost", 27017)
 

@@ -9,19 +9,19 @@ from bvb_finance.company_reports.BVB_Report import BVB_Report
 from bvb_finance.company_reports import dto
 from bvb_finance import containers
 from bvb_finance import datetime_conventions
-import bvb_finance
+from . import common
+from bvb_finance import logging
 
 __all__ = [
     'get_company_tickers_layout',
     'get_button_to_save_db_content',
     'get_radio_bar_to_search_for_company_reports',
     'get_component_to_load_db_snapshot',
-    'get_table',
     'get_company_reports_table',
     'get_button_to_save_all_report_files_from_db_to_disk',
 ]
 
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 # types
 Failures: typing.TypeAlias = list[str]
@@ -94,34 +94,8 @@ def get_component_to_load_db_snapshot():
         ]),
     ])
 
-def get_table():
-    return dash.dash_table.DataTable(
-        id='company-reports-table',
-        data=[],
-        page_size=40,
-        style_header={
-            'backgroundColor': 'rgb(30, 30, 30)',
-            'color': 'white',
-            'fontWeight': 'bold'
-        },
-        style_data={
-            'backgroundColor': 'rgb(50, 50, 50)',
-            'color': 'white'
-        },
-        style_data_conditional=[
-            {
-                'if': {'row_index': 'odd'},
-                'backgroundColor': 'rgb(94, 194, 219)',
-                'color': 'black'
-            }
-        ],
-        sort_action="native",
-        sort_mode="multi",
-        sort_by=[],
-    )
-
 def get_company_reports_table():
-    table = get_table()
+    table = common.get_table()
     table.id = 'company-reports-table'
     return table
 
@@ -131,7 +105,7 @@ def get_company_reports_table():
     dash.Input(component_id='db_snapshot-radiobar', component_property='value'),
     dash.Input(component_id='db_snapshot-confirm-choice-button', component_property='n_clicks'),
     prevent_initial_call=True,
-    running=[dash.Output(component_id='db_snapshot-confirm-choice-button', component_property='disabled'), True, False]
+    running=common.disable_component_till_completion('db_snapshot-confirm-choice-button'),
 )
 def get_component_to_load_db_snapshot_callback(db_snapshot_file, n_clicks):
     if 'db_snapshot-confirm-choice-button' != dash.ctx.triggered_id:

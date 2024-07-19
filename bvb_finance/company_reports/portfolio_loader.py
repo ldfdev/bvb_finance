@@ -1,10 +1,8 @@
 import json
 import pathlib
-import logging
+from bvb_finance import logging
 
-import bvb_finance
-
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 portfolio_companies = 'resources/portfolio_companies.json'
 

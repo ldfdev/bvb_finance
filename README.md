@@ -14,5 +14,8 @@ docker run -d -p 27017:27017 --name mongo-server mongo
 ## To run all unit tests
 `python3  -m unittest discover tests/`
 
+Or using pytest
+`pytest  -o log_cli=true`
+
 ## To lint
 `flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics`

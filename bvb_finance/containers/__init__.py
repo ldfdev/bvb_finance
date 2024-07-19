@@ -2,16 +2,16 @@ import pathlib
 import subprocess
 import docker
 import datetime
-from bvb_finance.company_reports import constants
+from bvb_finance import constants
 from bvb_finance.persist import db_constants
 from bvb_finance import datetime_conventions
 import pathlib
 import os
-import logging
+from bvb_finance import logging
 import typing
 import bvb_finance
 
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 container_path = '/docker_files'
 host_path = pathlib.Path(constants.root_dir) / (container_path.strip(os.sep))

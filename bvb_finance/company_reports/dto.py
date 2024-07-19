@@ -2,13 +2,13 @@ import dataclasses, json
 import typing
 import datetime
 import re
-import logging
+from bvb_finance import logging
 import pathlib
 
 from bvb_finance import datetime_conventions
 import bvb_finance
 
-logger = bvb_finance.getLogger()
+logger = logging.getLogger()
 
 
 class JSONEncoder(json.JSONEncoder):
