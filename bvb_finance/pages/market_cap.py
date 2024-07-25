@@ -4,6 +4,6 @@ from bvb_finance import logging
 from bvb_finance.layouts import market_cap as market_cap_layout
 
 logger = logging.getLogger()
-dash.register_page(__name__, path='/market_cap')
+dash.register_page(__name__, name='BVB Companies my Market Cap', path='/market_cap')
 
 layout = market_cap_layout.get_layout()

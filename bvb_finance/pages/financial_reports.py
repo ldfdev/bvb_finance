@@ -5,7 +5,7 @@ from bvb_finance import layouts
 from bvb_finance import logging
 
 logger = logging.getLogger()
-dash.register_page(__name__, path='/financial_reports')
+dash.register_page(__name__, name='Financial Reports available on BVB for my portfolio', path='/financial_reports')
 
 
 # App layout

@@ -163,3 +163,7 @@ cython_debug/
 
 # metadata about the companies that is user specific
 /resources/
+/portfolio_data/
+
+# playground notebook
+/bvb_finance.ipynb

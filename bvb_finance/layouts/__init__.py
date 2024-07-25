@@ -4,7 +4,7 @@ import dataclasses
 import enum
 import pandas as pd
 import typing
-from bvb_finance.company_reports import portfolio_loader
+from bvb_finance.common import portfolio_loader
 from bvb_finance.company_reports.BVB_Report import BVB_Report
 from bvb_finance.company_reports import dto
 from bvb_finance import containers
