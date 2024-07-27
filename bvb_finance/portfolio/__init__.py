@@ -1,10 +1,12 @@
 import typing
 import operator
+import pandas as pd
 from bvb_finance import logging
 from bvb_finance.common import portfolio_loader
 from bvb_finance.common import numeric
 from bvb_finance.portfolio import dto
 from bvb_finance.portfolio import loaders
+from bvb_finance.portfolio.acquistions_processor import AcquisitionsProcessor
 
 logger = logging.getLogger()
 
@@ -14,11 +16,6 @@ acquisitions: list[dto.Acquisition] = loaders.load_acquisitions_data(loaders.por
 
 NullableFLoat: typing.TypeVar = float | str
 
-class UIPartialDataCostOfAcquisition(typing.TypedDict):
-    symbol: str
-    invested_sum: float
-    num_of_shares: int
-    fees: float
 
 def compute_roi(initial_sum: NullableFLoat, final_sum: NullableFLoat) -> NullableFLoat:
     if isinstance(initial_sum, str):
@@ -29,29 +26,35 @@ def compute_roi(initial_sum: NullableFLoat, final_sum: NullableFLoat) -> Nullabl
 
 def obtain_portfolio_data() -> list[dto.UIDataDict]:
     logger.info("Gathering acquisitions data")
-    acquisition: list[dto.Acquisition] = loaders.load_acquisitions_data(loaders.portfolio_acquisition_details)
+    acquisitions_df: pd.DataFrame = loaders.load_acquisitions_data(loaders.portfolio_acquisition_details)
+    acquisitions: list[dto.Acquisition] = AcquisitionsProcessor.process_acquisitions_from_dataframe(acquisitions_df)
+
+    logger.info("Gathering stock splits data")
+    stock_split_df: pd.DataFrame = loaders.load_stock_splits_data(loaders.portfolio_stock_splits)
+    stock_splits: list[dto.StockSplit] = AcquisitionsProcessor.process_stock_splits_from_dataframe(stock_split_df)
+
     for i, a in enumerate(acquisitions, start=1):
         logger.info(f"  {i}: {a.dict}")
     logger.info("Aggregating acquisitios data")
-    lst: list[UIPartialDataCostOfAcquisition] = group_acquisitions_data(acquisition)
-    for i, a in enumerate(lst, start=1):
+    grouped_acquisitions: list[dto.UIPartialDataCostOfAcquisition] = AcquisitionsProcessor.group_acquisitions_data()
+    for i, a in enumerate(grouped_acquisitions, start=1):
         logger.info(f"  {i}: {a}")
     
     ui_data: list[dto.UIDataDict] = list()
 
     logger.info("Loading market data")
     market_data: dto.MarketData = loaders.load_historical_data_many_tickers(tickers)
-    for l in lst:
-        ticker: str = l["symbol"]
-        invested_sum: float = l["invested_sum"]
+    for grouped_acquisition in grouped_acquisitions:
+        ticker: str = grouped_acquisition["symbol"]
+        invested_sum: float = grouped_acquisition["invested_sum"]
         market_value, market_value_date = "N/A", "N/A"
         data = market_data.get_market_value(ticker)
         if data:
             market_value, market_value_date = data
-        compamy_market_vlue: float = numeric.safe_prod(market_value, l["num_of_shares"])
+        compamy_market_vlue: float = numeric.safe_prod(market_value, grouped_acquisition["num_of_shares"])
         ui_data.append({
             "symbol": ticker,
-            "num_of_shares": l["num_of_shares"],
+            "num_of_shares": grouped_acquisition["num_of_shares"],
             "invested_sum": invested_sum,
             "market_value": compamy_market_vlue,
             "last_closing_price": market_value,
@@ -59,25 +62,3 @@ def obtain_portfolio_data() -> list[dto.UIDataDict]:
             "roi": compute_roi(invested_sum, compamy_market_vlue),
         })
     return ui_data
-
-def group_acquisitions_data(acquisitions: list[dto.Acquisition]) -> list[UIPartialDataCostOfAcquisition]:
-    visited: typing.Dict[str, UIPartialDataCostOfAcquisition] = dict()
-    for acquisition in acquisitions:
-        cache: typing.Optional[dto.Acquisition] = visited.get(acquisition.symbol) 
-        if cache is None:
-            cache = {
-                "symbol": acquisition.symbol,
-                "invested_sum": 0.0,
-                "num_of_shares": 0,
-                "fees": 0.0
-            }
-            visited[acquisition.symbol] = cache
-
-        cache["num_of_shares"] += acquisition.quantity
-        cache["invested_sum"] += acquisition.price
-        cache["fees"] += acquisition.fees
-    result = [v for v in visited.values()]
-    logger.info(f"Constructed grouped acquisitions data: {result}")
-    result.sort(key = lambda d: d["symbol"])
-    return result
-

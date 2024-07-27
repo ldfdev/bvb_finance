@@ -4,6 +4,7 @@ import pandas as pd
 from bvb_finance.portfolio import loaders
 from bvb_finance.portfolio import dto
 from bvb_finance import portfolio
+from bvb_finance.portfolio.acquistions_processor import AcquisitionsProcessor
 from . import get_full_path
 
 class TestPortfolio(unittest.TestCase):
@@ -22,7 +23,8 @@ class TestPortfolio(unittest.TestCase):
 
     def test_load_portfolio(self):
         portfolio_acquisition_details = get_full_path("portfolio_acquisition_details.tsv")
-        acquisitions: list[dto.Acquisition] = loaders.load_acquisitions_data(portfolio_acquisition_details)
+        acquisitions_df: pd.DataFrame = loaders.load_acquisitions_data(portfolio_acquisition_details)
+        acquisitions: list[dto.Acquisition] = AcquisitionsProcessor.process_acquisitions_from_dataframe(acquisitions_df)
         self.assertEqual(len(acquisitions), 7, [str(a) for a in acquisitions])
         first = """{
     "date": "05.01.2024",
@@ -314,7 +316,7 @@ class TestPortfolio(unittest.TestCase):
         (value,_) = market_data.get_market_value("A1")
         self.assertEqual(value, 20250112)
 
-    def test_group_acquisitions_data(self):
+    def test_group_acquisitions_data_no_stock_splits_same_date(self):
         acquisitions: list[dto.Acquisition] = [
             {
                 "symbol": "A",
@@ -346,23 +348,147 @@ class TestPortfolio(unittest.TestCase):
             },
         ]
         acquisitions = [dto.Acquisition(a) for a in acquisitions]
+        stock_splits = list()
 
-        resulted_list: list[portfolio.UIPartialDataCostOfAcquisition] = portfolio.group_acquisitions_data(acquisitions)
+        ap: AcquisitionsProcessor = AcquisitionsProcessor(acquisitions, stock_splits)
+        
+        resulted_list: list[dto.Acquisition] = AcquisitionsProcessor.group_acquisitions_data()
         self.assertEqual(len(resulted_list), 2)
 
-        first: portfolio.UIPartialDataCostOfAcquisition = resulted_list[0]
+        first: dto.UIPartialDataCostOfAcquisition = resulted_list[0]
         self.assertEqual(first["symbol"], "A")
-        self.assertEqual(first["invested_sum"], float(100 + 200 + 300))
+        self.assertEqual(first["invested_sum"], float(100 + 200 + 100))
         self.assertEqual(first["num_of_shares"], 1 + 1 + 3)
         self.assertEqual(first["fees"], float(1 + 1 + 1))
+        self.assertEqual(first["date"], datetime.date(year=2000, month=1, day=1))
 
-        second: portfolio.UIPartialDataCostOfAcquisition = resulted_list[1]
+        second: dto.UIPartialDataCostOfAcquisition = resulted_list[1]
         self.assertEqual(second["symbol"], "B")
         self.assertEqual(second["invested_sum"], float(2000))
         self.assertEqual(second["num_of_shares"], 1)
         self.assertEqual(second["fees"], float(1))
+        self.assertEqual(second["date"], datetime.date(year=2000, month=1, day=1))
+    
+    def test_group_acquisitions_data_no_stock_splits_different_dates(self):
+        acquisitions: list[dto.Acquisition] = [
+            {
+                "symbol": "A",
+                "quantity": 1,
+                "price": 100,
+                "fees": 1,
+                "date": "1.1.2001"
+            },
+            {
+                "symbol": "B",
+                "quantity": 1,
+                "price": 2000,
+                "fees": 1,
+                "date": "1.1.2000"
+            },
+            {
+                "symbol": "A",
+                "quantity": 1,
+                "price": 200,
+                "fees": 1,
+                "date": "1.1.2002"
+            },
+            {
+                "symbol": "A",
+                "quantity": 3,
+                "price": 100,
+                "fees": 1,
+                "date": "1.1.2010"
+            },
+        ]
+        acquisitions = [dto.Acquisition(a) for a in acquisitions]
+        stock_splits = list()
 
-        for r in resulted_list:
-            self.assertTrue("date" not in r.keys(), f"Found date key in UIPartialDataCostOfAcquisition onject {r}")
-
+        ap: AcquisitionsProcessor = AcquisitionsProcessor(acquisitions, stock_splits)
         
+        resulted_list: list[dto.Acquisition] = AcquisitionsProcessor.group_acquisitions_data()
+        self.assertEqual(len(resulted_list), 2)
+
+        first: dto.UIPartialDataCostOfAcquisition = resulted_list[0]
+        self.assertEqual(first["symbol"], "A")
+        self.assertEqual(first["invested_sum"], float(100 + 200 + 100))
+        self.assertEqual(first["num_of_shares"], 1 + 1 + 3)
+        self.assertEqual(first["fees"], float(1 + 1 + 1))
+        self.assertEqual(first["date"], datetime.date(year=2010, month=1, day=1))
+
+        second: dto.UIPartialDataCostOfAcquisition = resulted_list[1]
+        self.assertEqual(second["symbol"], "B")
+        self.assertEqual(second["invested_sum"], float(2000))
+        self.assertEqual(second["num_of_shares"], 1)
+        self.assertEqual(second["fees"], float(1))
+        self.assertEqual(second["date"], datetime.date(year=2000, month=1, day=1))
+    
+    def test_group_acquisitions_data_no_stock_using_stock_splits(self):
+        acquisitions: list[dto.Acquisition] = [
+            {
+                "symbol": "A",
+                "quantity": 1,
+                "price": 100,
+                "fees": 1,
+                "date": "1.1.2001"
+            },
+            {
+                "symbol": "B",
+                "quantity": 1,
+                "price": 2000,
+                "fees": 1,
+                "date": "1.1.2000"
+            },
+            {
+                "symbol": "A",
+                "quantity": 1,
+                "price": 200,
+                "fees": 1,
+                "date": "1.1.2002"
+            },
+            {
+                "symbol": "A",
+                "quantity": 3,
+                "price": 100,
+                "fees": 1,
+                "date": "1.1.2010"
+            },
+        ]
+        acquisitions = [dto.Acquisition(a) for a in acquisitions]
+
+        stock_splits: list[dto.StockSplit]  = [
+            {
+                "date": "20.08.2008",
+                "symbol": "XYZ",
+                "split_ratio": "1/1",
+            },
+            {
+                "date": "28.08.1996",
+                "symbol": "B",
+                "split_ratio": "1/1",
+            },
+            {
+                "date": "20.08.2008",
+                "symbol": "A",
+                "split_ratio": "100/1",
+            },
+        ]
+        stock_splits = [dto.StockSplit(a) for a in stock_splits]
+
+        ap: AcquisitionsProcessor = AcquisitionsProcessor(acquisitions, stock_splits)
+        
+        resulted_list: list[dto.Acquisition] = AcquisitionsProcessor.group_acquisitions_data()
+        self.assertEqual(len(resulted_list), 2)
+
+        first: dto.UIPartialDataCostOfAcquisition = resulted_list[0]
+        self.assertEqual(first["symbol"], "A")
+        self.assertEqual(first["invested_sum"], float(100 + 200 + 100))
+        self.assertEqual(first["num_of_shares"], 100 + 100 + 3)
+        self.assertEqual(first["fees"], float(1 + 1 + 1))
+        self.assertEqual(first["date"], datetime.date(year=2010, month=1, day=1))
+
+        second: dto.UIPartialDataCostOfAcquisition = resulted_list[1]
+        self.assertEqual(second["symbol"], "B")
+        self.assertEqual(second["invested_sum"], float(2000))
+        self.assertEqual(second["num_of_shares"], 1)
+        self.assertEqual(second["fees"], float(1))
+        self.assertEqual(second["date"], datetime.date(year=2000, month=1, day=1))

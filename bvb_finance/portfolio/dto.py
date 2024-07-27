@@ -156,6 +156,41 @@ class Portfolio:
     def get_acquisition_fees(self) -> float:
         return sum(a.fees for a in self.acquisitions)
 
+class StockSplitDict(typing.TypedDict):
+    date: datetime.date
+    symbol: str
+    split_ratio: str
+
+class StockSplit(DictConverter):
+    @staticmethod
+    def convert_date_from_str(value: str | datetime.date) -> datetime.date:
+        if isinstance(value, datetime.date):
+            return value
+        return datetime.datetime.strptime(value, datetime_conventions.date_format).date()
+    
+    def __init__(self, d: StockSplitDict):
+        d_copy = {k: v for k, v in d.items()}
+        d_copy['price'] = self.convert_price_to_float(d_copy.get('price'))
+        d_copy['date'] = self.convert_date_from_str(d_copy['date'])
+        super().__init__(d_copy)
+    
+    def get_new_shares_quantity(self, old_shares_num: numbers.Number) -> numbers.Number:
+        new, old = self.split_ratio.split("/")
+        new = float(new)
+        old = float(old)
+        return new * old_shares_num / old
+    
+    def get_new_shares_price(self, old_shares_price: numbers.Number) -> numbers.Number:
+        new, old = self.split_ratio.split("/")
+        new = float(new)
+        old = float(old)
+        return new * old_shares_price / old
+    
+    def __init__(self, d: StockSplitDict):
+        d_copy = {k: v for k, v in d.items()}
+        d_copy['date'] = self.convert_date_from_str(d_copy['date'])
+        super().__init__(d_copy)
+
 class UIDataDict(typing.TypedDict):
     symbol: str
     num_of_shares: int
@@ -167,3 +202,10 @@ class UIDataDict(typing.TypedDict):
     price_var_1w: float
     price_var_1m: float
     price_var_3m: float
+
+class UIPartialDataCostOfAcquisition(typing.TypedDict):
+    date: datetime.date
+    symbol: str
+    invested_sum: float
+    num_of_shares: int
+    fees: float

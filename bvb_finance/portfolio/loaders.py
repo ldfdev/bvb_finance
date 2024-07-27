@@ -11,7 +11,9 @@ from tvDatafeed import TvDatafeed, Interval
 
 logger = logging.getLogger()
 
-portfolio_acquisition_details = pathlib.Path(__file__).parent.parent.parent / 'resources/portfolio_acquisition_details_by_date.tsv'
+root_path = pathlib.Path(__file__).parent.parent.parent
+portfolio_acquisition_details = root_path / 'resources/portfolio_acquisition_details_by_date.tsv'
+portfolio_stock_splits = root_path / 'resources/stock_splits.tsv'
 
 TradingViev = TvDatafeed()
 TRADINGVIEW_BVB_SYMBOL='BVB'
@@ -19,26 +21,21 @@ TRADINGVIEW_BVB_SYMBOL='BVB'
 constants.portfolio_data_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 constants.portfolio_historical_data_path.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-def load_acquisitions_data(path: pathlib.Path) -> list[dto.Acquisition]:
+def load_acquisitions_data(path: pathlib.Path) -> pd.DataFrame :
     if not path.exists():
         logger.warn(f'User did not specify acquisition details for his portfolios in {path.as_posix()}')
-        return []
+        return pd.DataFrame()
     df: pd.DataFrame = pd.read_csv(path, sep='\t', index_col=False)
-    df['Pret'] = df['Pret'].apply(dto.Acquisition.convert_price_to_float)
-    df['Data'] = df['Data'].apply(dto.Acquisition.convert_date_from_str)
+    logger.info(f'Successfuly loaded portfolio acquisition data from {path.as_posix()}')
+    return df
 
-    logger.info(f'Successfuly loaded portfolio data from {path.as_posix()}')
-
-    # columns are Data	Simbol	Cantitate	Pret	Comision
-    file_columns = 'Data	Simbol	Cantitate	Pret	Comision'.split('\t')
-    new_coluns = [key for key in typing.get_type_hints(dto.AcquisitionDict)]
-    column_replacement = {
-        old: new for old, new in zip(file_columns, new_coluns)
-    }
-    df.rename(columns=column_replacement, inplace=True)
-    
-    return [dto.Acquisition({key: record[key] for key in new_coluns}) for record in df.to_dict('records')]
-
+def load_stock_splits_data(path: pathlib.Path) -> pd.DataFrame :
+    if not path.exists():
+        logger.warn(f'User did not specify stock splits data for his portfolios in {path.as_posix()}')
+        return pd.DataFrame()
+    df: pd.DataFrame = pd.read_csv(path, sep='\t', index_col=False)
+    logger.info(f'Successfuly loaded stock splits data from {path.as_posix()}')
+    return df
 
 def perfomr_data_transfomration(df: pd.DataFrame):
     columns = list(df.columns)
