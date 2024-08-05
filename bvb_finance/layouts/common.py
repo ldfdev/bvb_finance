@@ -27,4 +27,5 @@ def get_table():
         sort_action="native",
         sort_mode="multi",
         sort_by=[],
+        export_format="csv",
     )
