@@ -18,6 +18,7 @@ client = MongoClient("localhost", 27017)
 db = client[db_constants.bvb_companies_db_name]
 
 bvb_companies_collection = db[db_constants.bvb_companies_collection]
+bvb_raw_html_collection = db[db_constants.bvb_raw_html_collection]
 
 def insert_website_company_document(company_data: dto.Website_Company):
     company_data_dict = company_data.serialize()
@@ -36,6 +37,27 @@ def insert_website_company_document(company_data: dto.Website_Company):
         ))
     db_document['documents'].extend(docs)
     bvb_companies_collection.update_one({"_id": db_document["_id"]}, { "$set": { 'documents': db_document['documents'] } })
+
+def insert_raw_html_document(ticker: str, raw_html: str):
+    data = {
+        'ticker': ticker,
+        'raw_html': raw_html
+    }
+    db_document: typing.Dict = bvb_raw_html_collection.find_one({'ticker': ticker})
+    if db_document is None:
+        bvb_raw_html_collection.insert_one(data)
+    else:
+        bvb_raw_html_collection.update_one({"_id": db_document["_id"]}, { "$set": { 'raw_html': data['raw_html'] } })
+
+def find_raw_html_document(ticker: str) -> typing.Optional[str]:
+    db_document: typing.Dict = bvb_raw_html_collection.find_one({'ticker': ticker})
+    if db_document is None:
+        return
+    return db_document['raw_html']
+
+def find_raw_html_documents() -> typing.List[str]:
+    db_documents: list[typing.Dict] = bvb_raw_html_collection.find({})
+    return [db_document['raw_html'] for db_document in db_documents]
 
 def find_one_website_company_document(ticker: str) -> typing.Optional[dto.Website_Company]:
     db_document: typing.Dict = bvb_companies_collection.find_one({'ticker': ticker})

@@ -190,3 +190,25 @@ class TestBVB_Report(unittest.TestCase):
         self.assertEqual(set([doc.file_name for doc in resulted_document.documents]), set(new_files))
 
         self.assertEqual(local_report.documents, local_report_documents)
+
+    def test_get_financial_calendar_data_from_html(self):
+        webpage = load_resource_file(BIO_data)
+        reports: list[dto.Financial_Calendar_Data] = BVB_Report.get_financial_calendar_data_from_html(webpage)
+        self.assertTrue(len(reports) == 3, f"Expected 3 documents, got {reports}")
+        self.assertEqual(reports[0].date.year, 2024)
+        self.assertEqual(reports[0].date.month, 8)
+        self.assertEqual(reports[0].date.day, 20)
+        self.assertEqual(reports[0].description, "Ex-Data dividend 2023")
+        self.assertEqual(reports[0].ticker, "BIO")
+
+        self.assertEqual(reports[1].date.year, 2024)
+        self.assertEqual(reports[1].date.month, 8)
+        self.assertEqual(reports[1].date.day, 22)
+        self.assertEqual(reports[1].description, "Rezultate financiare semestriale 2024")
+        self.assertEqual(reports[1].ticker, "BIO")
+
+        self.assertEqual(reports[2].date.year, 2024)
+        self.assertEqual(reports[2].date.month, 11)
+        self.assertEqual(reports[2].date.day, 14)
+        self.assertEqual(reports[2].description, "Rezultate financiare trimestrul III 2024")
+        self.assertEqual(reports[2].ticker, "BIO")

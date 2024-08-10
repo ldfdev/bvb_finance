@@ -4,6 +4,7 @@ from http import HTTPStatus
 from bs4 import BeautifulSoup
 import sys
 import os
+import itertools
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -86,21 +87,64 @@ def get_reports_from_html(html_doc: str) -> list[dto.Website_Financial_Document]
 
     return links
 
-def get_company_from_html(html_doc: str) -> dto.Website_Company:
-    company = dto.Website_Company()
-    soup = BeautifulSoup(html_doc, 'html.parser')
-    html_document_body = soup.find('body')
+def extract_ticker(parser: BeautifulSoup) -> str:
+    html_document_body = parser.find('body')
     for form in html_document_body.find_all('form'):
         if not form.has_attr('action'):
             continue
         form = form['action']
-        company.ticker = form.split('FinancialInstrumentsDetails.aspx?s=')[1]
-        break
+        return form.split('FinancialInstrumentsDetails.aspx?s=')[1]
+
+def get_company_from_html(html_doc: str) -> dto.Website_Company:
+    company = dto.Website_Company()
+    soup = BeautifulSoup(html_doc, 'html.parser')
+    company.ticker = extract_ticker(soup)
     html_document_title = soup.find('head').find('title').get_text()
     ticker_pos = html_document_title.find(company.ticker) + len(company.ticker)
     company_name = html_document_title[ticker_pos:]
     company.name = company_name.strip()
     return company
+
+def get_financial_calendar_data_from_html(html_doc: str) -> list[dto.Financial_Calendar_Data]:
+    logger.info('Entering get_financial_calendar_data_from_html')
+    soup = BeautifulSoup(html_doc, 'html.parser')
+    ticker: str = extract_ticker(soup)
+    html_document_body = soup.find('body')
+    documents = list()
+    table_div = None
+    for div in html_document_body.find_all('div'):
+        h2 = div.find('h2')
+        if not h2:
+            continue
+        if not "Calendar Financiar" in h2.get_text():
+            continue
+        table_div = div
+        break
+    logger.info(f"Found table_div element {table_div}")
+    table = table_div.find('div').find('div').find('table')
+    logger.info(f'Table = {table}')
+    for line in table.find('tbody').findAll('td'):
+        divs = [div for div in line.findAll('div')]
+        logger.info(f'Table line divs {divs}')
+        
+        date, description = divs[:2]
+        date = date.get_text().strip()
+        description = description.get_text().strip()
+        logger.info(f"Date <{date}> & Description <{description}>")
+        months = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'noi', 'dec']
+        day, month, year = date.split(' ')
+        day = int(day)
+        year = int(year)
+        for i, mon in enumerate(months, start=1):
+            if month.casefold().startswith(mon):
+                month = i
+                break
+        documents.append(dto.Financial_Calendar_Data({
+            "ticker": ticker,
+            "date": datetime(year=year, month=month, day=day).date(),
+            "description": description
+        }))
+    return documents
 
 def download_data(url):
     headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'}
@@ -206,6 +250,7 @@ class BVB_Report:
     @staticmethod
     def retrieve_website_company_data(ticker: str) -> dto.Website_Company:
         html_data = get_financial_reports_document_list(ticker)
+        mongo.insert_raw_html_document(ticker=ticker, raw_html=html_data)
         documents = BVB_Report.search_reports_on_bvb(ticker)
         company: dto.Website_Company  = get_company_from_html(html_data)
         company.documents = documents
@@ -245,3 +290,16 @@ class BVB_Report:
                 failures.append([report.ticker])
                 failures.append(report_failures)
         return failures
+
+    @staticmethod
+    def get_financial_calendar_data_from_html(html_doc: str) -> list[dto.Financial_Calendar_Data]:
+        return get_financial_calendar_data_from_html(html_doc)
+    
+    @staticmethod
+    def get_all_financial_calendar_data() -> list[dto.Financial_Calendar_Data]:
+        html_docs: list[str] = mongo.find_raw_html_documents()
+        lst = list()
+        for html_doc in html_docs:
+            lst.extend(get_financial_calendar_data_from_html(html_doc))
+        return lst
+    

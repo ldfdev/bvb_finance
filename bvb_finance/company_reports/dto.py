@@ -6,24 +6,15 @@ from bvb_finance import logging
 import pathlib
 
 from bvb_finance import datetime_conventions
+from bvb_finance.common import dto as common_dto
 import bvb_finance
 
 logger = logging.getLogger()
 
 
-class JSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        if dataclasses.is_dataclass(o):
-            return dataclasses.asdict(o)
-        if isinstance(o, datetime.date):
-            return o.strftime(datetime_conventions.date_format)
-        if isinstance(o, datetime.time):
-            return o.strftime(datetime_conventions.time_format)
-        return super().default(o)
-
 class MongoDao:
     def serialize(self):
-        str_dict = json.dumps(self, cls=JSONEncoder, indent=4, sort_keys=True)
+        str_dict = json.dumps(self, cls=common_dto.JSONEncoder, indent=4, sort_keys=True)
         return json.loads(str_dict)
 
     @staticmethod
@@ -147,3 +138,11 @@ class Document_Dto:
         doc.modification_time = datetime.time(hour, min, sec)
 
         return doc
+
+class Financial_Calendar_Data_Dict(typing.Dict):
+    ticker: str
+    date: datetime.date
+    description: str
+
+class Financial_Calendar_Data(common_dto.DictConverter):
+    pass

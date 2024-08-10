@@ -28,4 +28,5 @@ layout = [
     layouts.get_company_reports_table(),
     layouts.get_button_to_save_db_content(),
     layouts.get_button_to_save_all_report_files_from_db_to_disk(),
+    layouts.get_company_reports_calendar_table(),
 ]

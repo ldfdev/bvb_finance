@@ -261,3 +261,25 @@ def convert_website_company_collection_to_dataframe(website_company_iter: typing
     logger.info(f'gathered data:\n{report_df}')
     
     return report_df.to_dict('records')
+
+def get_company_reports_calendar_table():
+    table = common.get_table()
+    table.id = 'calendar-reports-table'
+
+    return dash.html.Div([
+        dash.html.H2("Calendar of future finalcial reportings"),
+        dash.html.Button('Show calendar', id='show-calendar-button', n_clicks=0),
+        dash.html.Div(id='save-db-button-notification-ui',
+                children='Click to show calendar'),
+        table
+    ])
+
+@dash.callback(
+    dash.Output(component_id='calendar-reports-table', component_property='data', allow_duplicate=True),
+    dash.Input(component_id='show-calendar-button', component_property='n_clicks'),
+    prevent_initial_call=True,
+    running=[dash.Output(component_id='show-calendar-button', component_property='disabled'), True, False]
+)
+def get_company_reports_calendar_table_callback(n_clicks):
+    calendar_data: list[dto.Financial_Calendar_Data] = BVB_Report.get_all_financial_calendar_data()
+    return common.convert_dict_to_dataframe(calendar_data)

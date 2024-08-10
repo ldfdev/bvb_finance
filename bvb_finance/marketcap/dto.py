@@ -1,6 +1,7 @@
 import typing
 import json
 import pandas as pd
+from bvb_finance.common import dto as common_dto
 
 class Evolutie(typing.TypedDict):
     time: int
@@ -21,15 +22,8 @@ class CompanyMarketCapDict(typing.TypedDict):
     var1sapt: float
     evolutie: typing.List[Evolutie]
 
-class DictConverter:
-    def __init__(self, d: typing.Dict):
-        self._dict = d
 
-    def __getattr__(self, name):
-        return self._dict.get(name)
-
-
-class CompanyMarketCap(DictConverter):
+class CompanyMarketCap(common_dto.DictConverter):
     @staticmethod
     def from_str(s: str) -> 'CompanyMarketCap':
         dict_ = json.loads(s)
@@ -39,5 +33,5 @@ class MarketCapDataUiPayloadDict(typing.TypedDict):
     modofication_date: str
     data: pd.DataFrame
 
-class MarketCapDataUiPayload(DictConverter):
+class MarketCapDataUiPayload(common_dto.DictConverter):
     pass

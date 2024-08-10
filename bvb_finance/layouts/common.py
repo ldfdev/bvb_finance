@@ -1,4 +1,10 @@
 import dash
+import typing
+import pandas as pd
+from bvb_finance.common import dto as common_dto
+from bvb_finance import logging
+
+logger = logging.getLogger()
 
 def disable_component_till_completion(component_id: str):
     return [dash.Output(component_id=component_id, component_property='disabled'), True, False]
@@ -29,3 +35,17 @@ def get_table():
         sort_by=[],
         export_format="csv",
     )
+
+def convert_dict_to_dataframe(dicts: typing.Iterable[common_dto.DictConverter]):
+    columns = None
+    data = list()
+    count = 0
+    for document in dicts:
+        count += 1
+        dict_ = document._dict
+        if columns is None:
+            columns = [key.upper() for key in dict_.keys()]
+        data.append(list(dict_.values()))
+    report_df = pd.DataFrame(data, columns=columns)
+    logger.info(f'Converted {count} items of type {dict_} to DataFrame')
+    return report_df.to_dict('records')
