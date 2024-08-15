@@ -18,9 +18,7 @@ host_path = pathlib.Path(constants.root_dir) / (container_path.strip(os.sep))
 mongo_conrainer = f'mongo-server-{constants.bvb_finance}'
 
 client = docker.from_env()
-
-def create_container_path():
-    host_path.mkdir(parents=True, exist_ok=True)
+host_path.mkdir(parents=True, exist_ok=True)
 
 def get_container(container_name):
     c = [c for c in client.containers.list() if c.name == container_name]
@@ -49,7 +47,6 @@ def start_mongo_container():
     if is_container_running(mongo_conrainer):
         return
     clear_exited_container(mongo_conrainer)
-    create_container_path()
     cmd = f'docker run -d -p 27017:27017 -v {host_path.as_posix()}:/{container_path}:rw --rm --name {mongo_conrainer} mongo'
     result = subprocess.run(cmd, shell=True, check=True, capture_output=True)
     logger.info(f"Started mongo container {result.stdout.decode()}")
