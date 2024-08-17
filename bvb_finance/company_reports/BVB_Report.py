@@ -4,7 +4,7 @@ from http import HTTPStatus
 from bs4 import BeautifulSoup
 import sys
 import os
-import itertools
+import operator
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -301,5 +301,6 @@ class BVB_Report:
         lst = list()
         for html_doc in html_docs:
             lst.extend(get_financial_calendar_data_from_html(html_doc))
+        lst.sort(key=operator.attrgetter("date", "ticker"))
         return lst
     
