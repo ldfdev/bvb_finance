@@ -2,6 +2,7 @@ import dash
 import typing
 import pandas as pd
 from bvb_finance.common import dto as common_dto
+from bvb_finance import datetime_conventions
 from bvb_finance import logging
 
 logger = logging.getLogger()
@@ -45,7 +46,7 @@ def convert_dict_to_dataframe(dicts: typing.Iterable[common_dto.DictConverter]):
         dict_ = document._dict
         if columns is None:
             columns = [key.upper() for key in dict_.keys()]
-        data.append(list(dict_.values()))
+        data.append([datetime_conventions.datetime_to_string(v) for v in dict_.values()])
     report_df = pd.DataFrame(data, columns=columns)
     logger.info(f'Converted {count} items of type {dict_} to DataFrame')
     return report_df.to_dict('records')
