@@ -52,10 +52,15 @@ class HistoricalDataDict(typing.TypedDict):
 
 class HistoricalData(common_dto.DictConverter):
     @staticmethod
-    def convert_date_from_str(value: str | datetime.date) -> datetime.date:
+    def convert_date_from_str(value: str | datetime.date | pd.Timestamp) -> datetime.date:
+        if isinstance(value, pd.Timestamp):
+            return value.date()
         if isinstance(value, datetime.date):
             return value
-        return datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S").date()
+        try:
+            return datetime.datetime.strptime(value, "%Y-%m-%d %H:%M:%S").date()
+        except ValueError:
+            return datetime.datetime.strptime(value, "%Y-%m-%d").date()
 
     @staticmethod
     def convert_symbol_from_trading_view_format(symbol: str) -> str:

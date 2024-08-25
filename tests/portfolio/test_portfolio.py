@@ -5,7 +5,7 @@ from bvb_finance.portfolio import loaders
 from bvb_finance.portfolio import dto
 from bvb_finance import portfolio
 from bvb_finance.portfolio.acquistions_processor import AcquisitionsProcessor
-from . import get_full_path
+from .. import get_full_path
 
 class TestPortfolio(unittest.TestCase):
     def test_acquistion_types(self):

@@ -12,3 +12,6 @@ historical_prices = 'historical_prices'
 portfolio_data_path = Path(__file__).parent.parent / portfolio_data
 root_dir = portfolio_data_path
 portfolio_historical_data_path = portfolio_data_path / historical_prices
+
+portfolio_data_path.mkdir(mode=0o777, parents=True, exist_ok=True)
+portfolio_historical_data_path.mkdir(mode=0o777, parents=True, exist_ok=True)

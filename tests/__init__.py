@@ -1,4 +1,8 @@
 from pathlib import Path
+import sys
+
+# add bvb_finance project path in tests
+sys.path.append(Path(__file__).parent.parent)
 
 resources = 'resources'
 
