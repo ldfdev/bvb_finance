@@ -1,6 +1,5 @@
 import logging
 import dash
-import bvb_finance
 from bvb_finance import constants
 
 __all__ = [

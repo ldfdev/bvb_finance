@@ -1,3 +1,6 @@
 from dash import Dash
+import flask
 
-app = Dash(__name__, use_pages=True)
+flask_server = flask.Flask(__name__)
+
+app = Dash(__name__, server=flask_server, routes_pathname_prefix="/dash/", use_pages=True)
