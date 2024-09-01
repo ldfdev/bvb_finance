@@ -1,0 +1,77 @@
+.card {
+  border: 1px solid black;
+  border-radius: 10px;
+  box-shadow: 5px 5px 5px hsl(182, 96%, 29%);
+  padding: 20px;
+  margin: 10px;
+  text-align: center;
+  max-width: fit-content;
+  display: inline-block;
+}
+
+.containerDiv {
+  width: fit-content;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  margin: auto;
+  align-items: center;
+  border: 5px solid hsl(160, 56%, 59%);
+  padding: 10px;
+}
+
+.containerDiv.divButton {
+  align-self: flex-end;;
+}
+
+.cardsHolder {
+  width: 70vw;
+  height: auto;
+  overflow-x: scroll;
+  scroll-behavior: "smooth";
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(160, 56%, 59%);
+}
+
+.scroll-btns {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+  margin-top: 50px;
+}
+
+.scrollButton {
+  font-size: 15px;
+  font-weight: 500;
+  width: fit-content;
+  position: relative;
+  padding: 1%;
+  color: #002d36;
+  background-color: #99c6cf;
+  border-radius: 50%;
+  padding: 10px 25px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.5s ease;
+}
+
+.scrollButton span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.scrollButton::after {
+  content: '';
+  display: block;
+  padding-bottom: 100%;
+}
+
+.scrollButton:hover {
+  color: #ffffff;
+  background-color: #002d36;
+}

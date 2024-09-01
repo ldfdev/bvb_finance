@@ -68,3 +68,12 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+
+### Instructions about how I integrated Reach nto the app
+
+#### Commands
+
+`npm install sass --save`
+Then rename all `.css` files into `.scss`
+This will make your css to be applied to React components
