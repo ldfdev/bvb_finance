@@ -7,6 +7,7 @@ from bvb_finance.common import numeric
 from bvb_finance.portfolio import dto
 from bvb_finance.portfolio import loaders
 from bvb_finance.portfolio.acquistions_processor import AcquisitionsProcessor
+from bvb_finance.rest_api import portfolio as rest_api_portfolio 
 
 logger = logging.getLogger()
 
@@ -26,8 +27,7 @@ def compute_roi(initial_sum: NullableFLoat, final_sum: NullableFLoat) -> Nullabl
 
 def obtain_portfolio_data() -> list[dto.UIDataDict]:
     logger.info("Gathering acquisitions data")
-    acquisitions_df: pd.DataFrame = loaders.load_acquisitions_data(loaders.portfolio_acquisition_details)
-    acquisitions: list[dto.Acquisition] = AcquisitionsProcessor.process_acquisitions_from_dataframe(acquisitions_df)
+    acquisitions: list[dto.Acquisition] = rest_api_portfolio.get_acquisitions_data()
 
     logger.info("Gathering stock splits data")
     stock_split_df: pd.DataFrame = loaders.load_stock_splits_data(loaders.portfolio_stock_splits)
