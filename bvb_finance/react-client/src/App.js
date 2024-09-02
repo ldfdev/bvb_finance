@@ -3,8 +3,8 @@ import Card from './Card'
 import './Card.css';
 
 function App() {
-  //initiali state of the variable backendData is the list consisting of "A", "B", "C"
-  const [backendData, setDataFunction] = useState(["A", "B", "C"])
+  //initiali state of the variable backendAcquisitionsData is the empty list
+  const [backendAcquisitionsData, setDataFunction] = useState([])
 
   const [scrollPosition, setScrollPosition] = useState(0);
 
@@ -24,11 +24,11 @@ function App() {
   const containerRef = useRef();
 
   useEffect(() => {
-    fetch("/api/financial_reports/portfolio_tickers/").then(
+    fetch("/api/portfolio/acquisitions/").then(
       res => res.json()
     ).then(
       fetchedData => {
-        // next backendData is assigned the value of fetchedData
+        // next backendAcquisitionsData is assigned the value of fetchedData
         // but the modification in not visivle inside the scope of this function
         setDataFunction(fetchedData)
         console.log("Backend data", fetchedData)
@@ -46,9 +46,14 @@ function App() {
       </div>
       <div className='cardsHolder' ref={containerRef}>
         {
-          backendData.map( (ticker, i) => (
-            <Card></Card>
-          ))
+          backendAcquisitionsData.map( (acquisitionData, i) => {
+            let json = JSON.parse(acquisitionData);
+            let acquisitionDate = json.date
+            let ticker = json.symbol
+            let quantity = json.quantity
+            let price = json.price
+            return <Card ticker={ticker} date={acquisitionDate} quantity={quantity} price={price}></Card>;
+          })
         }
       </div>
       <div className='divButton'>
