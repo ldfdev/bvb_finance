@@ -12,7 +12,7 @@ def get_portfolio_tickers() -> list[str]:
 def get_acquisitions_data() -> list[dto.Acquisition]:
     acquisitions_df: pd.DataFrame = portfolio_loaders.load_acquisitions_data(portfolio_loaders.portfolio_acquisition_details)
     acquisitions: list[dto.Acquisition] = AcquisitionsProcessor.process_acquisitions_from_dataframe(acquisitions_df)
-    acquisitions.sort(key=operator.attrgetter('date', 'symbol'), reverse=True)
+    acquisitions.sort(key=operator.attrgetter('date', 'price'), reverse=True)
     return acquisitions
 
 def get_acquisitions_data_as_json() -> str:
