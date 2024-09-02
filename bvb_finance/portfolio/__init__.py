@@ -1,5 +1,8 @@
 import typing
 import operator
+import plotly
+import numpy as np
+import plotly.express as px
 import pandas as pd
 from bvb_finance import logging
 from bvb_finance.common import portfolio_loader
@@ -62,3 +65,23 @@ def obtain_portfolio_data() -> list[dto.UIDataDict]:
             "roi": compute_roi(invested_sum, compamy_market_vlue),
         })
     return ui_data
+
+Figure = plotly.graph_objs._figure.Figure
+
+def build_portfoloio_figures(uidata: list[dto.UIDataDict]) -> Figure:
+    df: pd.DataFrame = pd.DataFrame({
+        'symbol': [ui["symbol"] for ui in uidata],
+        "invested_sum": [ui["invested_sum"] for ui in uidata],
+        "market_value": [ui["market_value"] for ui in uidata],
+        "roi": [ui["roi"] for ui in uidata],
+    })
+
+    df['Profitability'] = np.where(df["roi"]<0, 'Loss', 'Profit')
+    df = df.sort_values(by=['roi'], ascending=False)
+    roifig = px.bar(df, x="symbol", y="roi", color=df['Profitability'], title="Portfolio by Return on Investment")
+    roifig.update_traces(hovertemplate=
+                         '<b>%{x}</b>'+
+                         '<br><b>roi</b>: %{y:.2f}%<br>'
+    )
+    roifig.update_layout(hovermode="x")
+    return roifig
