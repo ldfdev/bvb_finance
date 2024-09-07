@@ -11,11 +11,11 @@ from bvb_finance import datetime_conventions
 from bvb_finance.portfolio import dto
 from bvb_finance.common import datetime as common_datetime
 from bvb_finance.common import na_type
-from bvb_finance import portfolio
+from bvb_finance.common import portfolio_loader
 
 logger = logging.getLogger()
 
-tickers = portfolio.tickers
+tickers = portfolio_loader.load_portfolio_tickers()
 
 def get_market_data_instance():
     market_data: dto.MarketData = dto.MarketData()
@@ -25,7 +25,12 @@ def variation_decorator(func):
     def wrapper(*args, **kwargs):
         func(*args, **kwargs)
         variation_enum, count = args
-        return VariationEnumMeta(variation_enum.name, count, variation_enum.header.format(count))
+        variation_enum_header: str = variation_enum.header.format(count)
+        return VariationEnumMeta(
+            variation_enum.name,
+            count,
+            variation_enum_header,
+            variation_enum.ref_interval.format(variation_enum_header))
     return wrapper
 
 class VariationEnum(enum.Enum):
@@ -37,6 +42,7 @@ class VariationEnum(enum.Enum):
     def __init__(self, count: int, header: str):
         self.count = count
         self.header = header
+        self.ref_interval = "Interval {}"
     
     def __call__(self, count=None):
         """
@@ -55,10 +61,15 @@ class VariationEnum(enum.Enum):
 
 
 class VariationEnumMeta:
-    def __init__(self, variation_enum_name, variation_enum_count, variation_enum_header):
+    def __init__(self,
+                 variation_enum_name,
+                 variation_enum_count,
+                 variation_enum_header,
+                 variation_enum_ref_interval):
         self.name = variation_enum_name
         self.count = variation_enum_count
         self.header = variation_enum_header
+        self.ref_interval = variation_enum_ref_interval
     
     def get_start_date(self, ref_date: datetime.date) -> datetime.date:
         if VariationEnum.DAILY_VAR == self.name:
@@ -95,14 +106,25 @@ class VariationEnumMeta:
         return f'{cls}({attrs})'
 
 
-def build_tickers_variations_data(variation: VariationEnumMeta) -> pd.DataFrame:
+def build_tickers_variations_data(*variations: typing.Iterable[VariationEnumMeta]) -> pd.DataFrame:
     market_data: pd.DataFrame = get_market_data_instance()
-    tickers = market_data.df['symbol']
+    tickers: list[str] = just_unique_values(market_data.df['symbol'])
+    df: pd.DataFrame = pd.DataFrame()
+    for variation in variations:
+        variation_df: pd.DataFrame = create_tickers_variation_dataframe(tickers, variation)
+        for column in list(variation_df.columns):
+            # only the symbol column is overwritten
+            # but create_tickers_variation_dataframe creates teh same symbol column
+            # this is the only column that is non unique
+            df[column] = variation_df[column]
+    return df
+
+def create_tickers_variation_dataframe(tickers: list[str], variation: VariationEnumMeta) -> pd.DataFrame:
     column_label: str = variation.header
     df: pd.DataFrame = pd.DataFrame()
-    df['symbol'] = just_unique_values(tickers)
+    df['symbol'] = tickers
     variation_data = [build_ticker_variation(ticker, variation) for ticker in df['symbol']]
-    logger.info(f"variation_data {variation_data}")
+    logger.info(f"variation_data {variation_data}. tickers {tickers}")
     variation_column = [vd[0] for vd in variation_data]
     variation_date_ranges = ["{} - {}".format(
         datetime_conventions.datetime_to_string(start_date),
@@ -110,7 +132,7 @@ def build_tickers_variations_data(variation: VariationEnumMeta) -> pd.DataFrame:
         for _, [start_date, end_date] in variation_data
     ]
     df[column_label] = variation_column
-    df['Interval {}'.format(column_label)] = variation_date_ranges
+    df[variation.ref_interval] = variation_date_ranges
     return df
 
 def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
@@ -143,7 +165,7 @@ def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
         start_date = prices_df_start_date
     
     prices: list[float] = list(prices_df['close'])
-    first_price, last_price = prices
+    first_price, last_price = prices[0], prices[-1]
     first_fraction = fractions.Fraction(first_price)
     last_fraction = fractions.Fraction(last_price)
     l1, l2 = last_fraction.numerator, last_fraction.denominator

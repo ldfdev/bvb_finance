@@ -18,7 +18,7 @@ def get_table():
     return table
 
 def get_card_from_acquisition(acquisition: dto.Acquisition) -> dbc.Card:
-    table = get_table()
+    table = common.get_table()
     table.id = str()
     table.css = [
         {
@@ -85,6 +85,8 @@ def get_layout():
         dash.html.Div(id='portfolio-statistics-graph-div',
                 children=""
         ),
+        dash.html.Div(id='tickers-variation-graph-div',
+                children=""),
         dash.html.Div([
             get_table()
         ]),
@@ -96,6 +98,7 @@ def get_layout():
     dash.Output(component_id='portfolio-amount-invested-component', component_property='children', allow_duplicate=True),
     dash.Output(component_id='portfolio-roi-component', component_property='children', allow_duplicate=True),
     dash.Output(component_id='portfolio-statistics-graph-div', component_property='children', allow_duplicate=True),
+    dash.Output(component_id='tickers-variation-graph-div', component_property='children', allow_duplicate=True),
     dash.Input(component_id='portfolio-confirm-choice-button', component_property='n_clicks'),
     prevent_initial_call=True,
     running=common.disable_component_till_completion('portfolio-confirm-choice-button')
@@ -113,5 +116,35 @@ def load_market_cap_data_callback(n_clicks):
         f"Ultima actualizare: {data_actualizare}",
         portfolio_amount_invested.format(sum_invested),
         portfolio_roi.format(portfolio.compute_roi(sum_invested, market_value)),
-        dash.dcc.Graph(figure=figure)
+        dash.dcc.Graph(figure=figure),
+        build_variations_grid(),
     ]
+
+def build_variations_grid() -> list[dash.html.Div]:
+    grid = []
+    for figure, dataframe in portfolio.build_variations():
+        variation_table = common.get_table()
+        variation_table.data = dataframe.to_dict('records')
+
+        div = dash.html.Div([
+                dash.dcc.Graph(figure=figure),
+                variation_table
+            ],
+            style = {
+                "max-width": "90%",
+                "width": "fit-content",
+                "height": "auto",
+                "display": "flex",
+                "flex-direction": "row",
+                "align-items": "left",
+                "border": "2px solid black",
+                "border-radius": "20px",
+                "box-shadow": "3px 3px hsl(182, 96%, 29%), -1em 0 .4em olive",
+                "padding": "10px",
+                "margin": "10px",
+                "overflow-x": "scroll",
+                "scroll-behavior": "smooth",
+            }
+        )
+        grid.append(div)
+    return grid

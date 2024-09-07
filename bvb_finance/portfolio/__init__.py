@@ -10,6 +10,7 @@ from bvb_finance.common import portfolio_loader
 from bvb_finance.common import numeric
 from bvb_finance.portfolio import dto
 from bvb_finance.portfolio import loaders
+from bvb_finance.portfolio import variations
 from bvb_finance.portfolio.acquistions_processor import AcquisitionsProcessor
 from bvb_finance.rest_api import portfolio as rest_api_portfolio 
 
@@ -82,3 +83,28 @@ def build_portfoloio_figures(uidata: list[dto.UIDataDict]) -> Figure:
     )
     roifig.update_layout(hovermode="x")
     return roifig
+
+def build_variations() -> typing.Iterable[typing.Tuple[Figure, pd.DataFrame]]:
+    
+    variations_of_interest: list[variations.VariationEnumMeta] = [
+        variations.VariationEnum.DAILY_VAR(1),
+        variations.VariationEnum.DAILY_VAR(7),
+        variations.VariationEnum.MONTHLY_VAR(1),
+        variations.VariationEnum.MONTHLY_VAR(3),
+        variations.VariationEnum.YTD()
+    ]
+    for variationEnum in variations_of_interest:
+        variation_df: pd.DataFrame = variations.build_tickers_variations_data(variationEnum)
+        variation_df = variation_df.sort_values(by=[variationEnum.header], ascending=False)
+
+        varfig = px.bar(variation_df, x="symbol", y=variationEnum.header,  title=f"Tickers Variation {variationEnum.header}")
+        varfig.update_traces(
+            customdata=np.array(variation_df[variationEnum.ref_interval]),
+            hovertemplate=
+                            '<b>%{x}</b>'+
+                            '<br><b>var</b>: %{y:.2f}%<br>'+
+                            '<br><b>' + variationEnum.ref_interval + '</b>: %{customdata:.2f}%<br>'
+        )
+        varfig.update_layout(hovermode="x")
+
+        yield varfig, variation_df

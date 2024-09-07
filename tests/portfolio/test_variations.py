@@ -199,6 +199,44 @@ class TestVariations(unittest.TestCase):
         self.assertEqual(intervals, ["02.01.2024 - 06.09.2024",
                                      "06.01.2024 - 30.08.2024"])
     
+    def test_tickers_variations_data_multiple_variations(self):
+        input: pd.DataFrame = pd.DataFrame([
+             # 7 day var data
+             [datetime.date(year=2024, month=4, day=10), "A1", 10, 20, 8, 9, 100],
+             [datetime.date(year=2024, month=4, day=17), "A1", 10, 20, 8, 18, 100],
+
+             [datetime.date(year=2023, month=4, day=10), "B1", 10, 20, 4, 14.89, 100],
+             [datetime.date(year=2023, month=4, day=17), "B1", 10, 20, 8, 10, 100],
+             # this month data
+             [datetime.date(year=2024, month=4, day=1), "A1", 10, 20, 8, 9, 100],
+             [datetime.date(year=2024, month=4, day=17), "A1", 10, 20, 8, 18, 100],
+
+             [datetime.date(year=2024, month=4, day=1), "B1", 10, 20, 4, 14.89, 100],
+             [datetime.date(year=2024, month=4, day=17), "B1", 10, 20, 8, 10, 100],
+             # YTD data
+             [datetime.date(year=2024, month=1, day=2), "A1", 10, 20, 8, 9, 100],
+             [datetime.date(year=2024, month=4, day=17), "A1", 10, 20, 8, 18, 100],
+
+             [datetime.date(year=2024, month=1, day=6), "B1", 10, 20, 4, 14.89, 100],
+             [datetime.date(year=2024, month=4, day=17), "B1", 10, 20, 8, 10, 100],
+            ],
+            columns=["date", "symbol", "open", "high", "low", "close", "volume"]
+        )
+        input = input.sort_values(by=['date'])
+        dto.MarketData.create_data(input)
+
+        df: pd.DataFrame = variations.build_tickers_variations_data(
+            variations.VariationEnum.DAILY_VAR(7),
+            variations.VariationEnum.THIS_MONTH_VAR(),
+            variations.VariationEnum.YTD())
+        print(df)
+        columns = list(df.columns)
+        self._check_column_data(columns, ["symbol",
+                                          "7 Day Var", "Interval 7 Day Var",
+                                          "This Month Var", "Interval This Month Var",
+                                          "YTD Var", "Interval YTD Var"])
+        self.assertEqual(len(df), 2)
+
     def _check_column_data(self, actual_column_data, expected_data):
         not_found = list()
         for e in expected_data:
