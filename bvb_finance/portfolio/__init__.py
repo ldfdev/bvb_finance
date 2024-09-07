@@ -5,6 +5,7 @@ import numpy as np
 import plotly.express as px
 import pandas as pd
 from bvb_finance import logging
+from bvb_finance.common import na_type
 from bvb_finance.common import portfolio_loader
 from bvb_finance.common import numeric
 from bvb_finance.portfolio import dto
@@ -20,12 +21,8 @@ acquisitions: list[dto.Acquisition] = loaders.load_acquisitions_data(loaders.por
 
 NullableFLoat: typing.TypeVar = float | str
 
-
+@na_type.na_type_check
 def compute_roi(initial_sum: NullableFLoat, final_sum: NullableFLoat) -> NullableFLoat:
-    if isinstance(initial_sum, str):
-        return "N/A"
-    if isinstance(final_sum, str):
-        return "N/A"
     return (final_sum / initial_sum - 1) * 100
 
 def obtain_portfolio_data() -> list[dto.UIDataDict]:

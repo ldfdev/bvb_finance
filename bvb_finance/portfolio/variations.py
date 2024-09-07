@@ -1,4 +1,5 @@
 import datetime
+import dateutil
 import enum
 import typing
 import fractions
@@ -6,8 +7,10 @@ from decimal import Decimal
 import pandas as pd
 import numpy as np
 from bvb_finance import logging
+from bvb_finance import datetime_conventions
 from bvb_finance.portfolio import dto
 from bvb_finance.common import datetime as common_datetime
+from bvb_finance.common import na_type
 from bvb_finance import portfolio
 
 logger = logging.getLogger()
@@ -15,52 +18,113 @@ logger = logging.getLogger()
 tickers = portfolio.tickers
 market_data: dto.MarketData = dto.MarketData()
 
-class VariationEnum(enum.Enum):
-    VAR_1_DAY  = (1, "1 Day Var")
-    VAR_7_DAYS = (7, "7 Day Var")
-    VAR_28_DAYS = (28, "28 Day Var")
-    VAR_MONTH_TO_DATE = (None, "Month To Date Var")
+def variation_decorator(func):
+    def wrapper(*args, **kwargs):
+        func(*args, **kwargs)
+        variation_enum, count = args
+        return VariationEnumMeta(variation_enum.name, count, variation_enum.header.format(count))
+    return wrapper
 
-def build_tickers_variations_data(variation: VariationEnum) -> pd.DataFrame:
-    tickers = market_data.df['symbol']
-    days_count, column_label = variation.value
-    df: pd.DataFrame = pd.DataFrame()
-    df['symbol'] = just_unique_values(market_data.df['symbol'])
-    one_day_var = [build_ticker_variation(ticker, days_count) for ticker in df['symbol']]
-    df[column_label] = one_day_var
+class VariationEnum(enum.Enum):
+    DAILY_VAR      = (1, "{} Day Var")
+    MONTHLY_VAR    = (1, "{} Month Var")
+    THIS_MONTH_VAR = (None, "This Month Var")
+    YTD            = (None, "YTD Var")
+
+    def __init__(self, count: int, header: str):
+        self.count = count
+        self.header = header
     
+    @variation_decorator
+    def __call__(self, count=None):
+        pass 
+    
+    def __eq__(self, other: str) -> bool:
+        return self.name == other
+
+
+class VariationEnumMeta:
+    def __init__(self, variation_enum_name, variation_enum_count, variation_enum_header):
+        self.name = variation_enum_name
+        self.count = variation_enum_count
+        self.header = variation_enum_header
+    
+    def get_start_date(self, ref_date: datetime.date) -> datetime.date:
+        if VariationEnum.DAILY_VAR == self.name:
+            return self._diff_in_days(ref_date)
+        if VariationEnum.MONTHLY_VAR == self.name:
+            return self._diff_in_months(ref_date)
+        if VariationEnum.THIS_MONTH_VAR == self.name:
+            return self._diff_this_month(ref_date)
+        if VariationEnum.YTD == self.name:
+            return self._diff_ytd(ref_date)
+        raise NotImplementedError
+    
+    def _diff_in_days(self, ref_date: datetime.date) -> datetime.date:
+        dt = datetime.datetime(year=ref_date.year, month=ref_date.month, day=ref_date.day) - datetime.timedelta(days=self.count)
+        return dt.date()
+    
+    def _diff_in_months(self, ref_date: datetime.date) -> datetime.date:
+        return ref_date - dateutil.relativedelta.relativedelta(months=self.count)
+    
+    def _diff_this_month(self, ref_date: datetime.date) -> datetime.date:
+        dt = datetime.datetime(year=ref_date.year, month=ref_date.month, day=1)
+        # if dt is Saturday the 3rd date will be business day
+        return common_datetime.get_bussiness_days_starting_at(dt, 3)[0]
+    
+    def _diff_ytd(self, ref_date: datetime.date) -> datetime.date:
+        dt = datetime.datetime(year=ref_date.year, month=1, day=1)
+        # Assuming Jan 1, Jan 2 stock exchange is closed we use a buffer of 5 days
+        return common_datetime.get_bussiness_days_starting_at(dt, 5)[0]
+    
+    def __repr__(self):
+        cls = self.__class__.__name__
+        attrs = ', '.join(f'{key}={value!r}' for key, value in self.__dict__.items())
+        return f'{cls}({attrs})'
+
+
+def build_tickers_variations_data(variation: VariationEnumMeta) -> pd.DataFrame:
+    tickers = market_data.df['symbol']
+    column_label: str = variation.header
+    df: pd.DataFrame = pd.DataFrame()
+    df['symbol'] = just_unique_values(tickers)
+    variation_data = [build_ticker_variation(ticker, variation) for ticker in df['symbol']]
+    logger.info(f"variation_data {variation_data}")
+    variation_column = [vd[0] for vd in variation_data]
+    variation_date_ranges = ["{} - {}".format(
+        datetime_conventions.datetime_to_string(start_date),
+        datetime_conventions.datetime_to_string(end_date))
+        for _, [start_date, end_date] in variation_data
+    ]
+    df[column_label] = variation_column
+    df['Interval {}'.format(column_label)] = variation_date_ranges
     return df
 
-def build_ticker_variation(ticker: str, variation_in_days: int):
+def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
     '''
-    returns np.nan if variation data cannot be computed from dataframe data
+    returns na_type.NAType if variation data cannot be computed from dataframe data
     '''
-    logger.info(f"build_ticker_variation({ticker}, {variation_in_days})")
-    n = variation_in_days + 1
+    logger.info(f"build_ticker_variation({ticker}, {variation})")
+    null_response = na_type.NAType, [na_type.NAType, na_type.NAType]
     ticker_data: pd.DataFrame = market_data.df.loc[(market_data.df['symbol'] == ticker), :]
     dates: list[datetime.date] = list(ticker_data.loc[:, 'date'])
     if not dates:
-        return np.nan
-    # build n days variation where n = variation_in_days
-    
-    # scanning most recent n dates
-    # this is because we colelct data weekly or daily
-    candidate_dates = dates[-n:]
-    logger.info(f"Candidate dates = {candidate_dates}")
-    for index, candidate in enumerate(candidate_dates, start=-n):
-        logger.info( f"Timedelta between {candidate} and {candidate_dates[-1]} " +\
-                    f"is {timedelta_in_days([candidate, candidate_dates[-1]])} " +\
-                    f"expected {n - 1}")
-        if timedelta_in_days([candidate, candidate_dates[-1]]) == n - 1:
-            prices: list[float] = list(ticker_data.iloc[index:, :]['close'])
-            first_price, last_price = prices
-            first_fraction = fractions.Fraction(first_price)
-            last_fraction = fractions.Fraction(last_price)
-            l1, l2 = last_fraction.numerator, last_fraction.denominator
-            f1, f2 = first_fraction.numerator, first_fraction.denominator
-            result = fractions.Fraction(100 * (l1*f2-l2*f1), l2*f1)
-            return float(result)
-    return np.nan
+        logger.warning(f"Ticker {ticker} no 'date' in market_data dataframe")
+        return null_response
+    newest_date: datetime.date = dates[-1]
+    start_date: datetime.date = variation.get_start_date(ref_date=newest_date)
+
+    mask = (ticker_data['date'] >= start_date) & (ticker_data['date'] <= newest_date)
+    prices: list[float] = list(ticker_data.loc[mask]['close'])
+    if len(prices) < 2:
+        return na_type.NAType, [start_date, newest_date]
+    first_price, last_price = prices
+    first_fraction = fractions.Fraction(first_price)
+    last_fraction = fractions.Fraction(last_price)
+    l1, l2 = last_fraction.numerator, last_fraction.denominator
+    f1, f2 = first_fraction.numerator, first_fraction.denominator
+    result = fractions.Fraction(100 * (l1*f2-l2*f1), l2*f1)
+    return float(result), [start_date, newest_date]
 
 def build_portfolio_variations_data() -> pd.DataFrame:
     market_data: dto.MarketData = dto.MarketData()

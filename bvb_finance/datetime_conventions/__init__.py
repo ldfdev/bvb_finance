@@ -1,4 +1,5 @@
 import datetime
+from bvb_finance.common import na_type
 
 date_format="%d.%m.%Y"
 time_format="%H:%M:%S"
@@ -10,6 +11,7 @@ def to_bvb_finance_date_format(date: datetime.date | str) -> str:
         return date
     return date.strftime(date_format)
 
+@na_type.na_type_check
 def datetime_to_string(o):
     if isinstance(o, datetime.date):
         return o.strftime(date_format)
