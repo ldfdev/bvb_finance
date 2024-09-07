@@ -99,11 +99,11 @@ class MarketData:
         in_range_df: pd.DataFrame = self.df.loc[mask]
         return in_range_df
 
-    def find_closest_date(self, date: datetime.date, criterion = DateComparison.NOT_GT) -> datetime.date:
+    def find_closest_in_dates(self, dates: list[datetime.date], date: datetime.date, criterion = DateComparison.NOT_GT) -> datetime.date:
         '''
         finds date that is as close as possible from date , according to criterion
+        dates is assumed to be sorted
         '''
-        dates = self.get_dates()
         if criterion is self.DateComparison.NOT_GT:
             pos = bisect.bisect_left(dates, date)
             # logger.info(f"Bisecting {dates} for {date} gives {pos}")
@@ -123,6 +123,10 @@ class MarketData:
             if pos >= len(dates):
                 return
             return dates[pos]
+
+    def find_closest_date(self, date: datetime.date, criterion = DateComparison.NOT_GT) -> datetime.date:
+        dates = self.get_dates()
+        return self.find_closest_in_dates(dates, date, criterion)
 
     def get_newest_date(self) -> datetime.date:
         return self.get_dates()[-1]

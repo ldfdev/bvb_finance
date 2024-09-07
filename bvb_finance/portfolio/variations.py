@@ -9,6 +9,7 @@ import numpy as np
 from bvb_finance import logging
 from bvb_finance import datetime_conventions
 from bvb_finance.portfolio import dto
+from bvb_finance.common import numeric
 from bvb_finance.common import datetime as common_datetime
 from bvb_finance.common import na_type
 from bvb_finance.common import portfolio_loader
@@ -32,6 +33,16 @@ def variation_decorator(func):
             variation_enum_header,
             variation_enum.ref_interval.format(variation_enum_header))
     return wrapper
+
+def adjust_date_if_weekend(date: datetime.date) -> datetime.date:
+    dt = datetime.datetime(date.year, date.month, date.day)
+    if dt.date().weekday() == 6:
+        # it is a Sunday
+        dt = dt  - datetime.timedelta(days=2)
+    elif dt.date().weekday() == 5:
+        # it is a Saturday
+        dt = dt  - datetime.timedelta(days=1)
+    return dt.date()
 
 class VariationEnum(enum.Enum):
     DAILY_VAR      = (1, "{} Day Var")
@@ -84,10 +95,10 @@ class VariationEnumMeta:
     
     def _diff_in_days(self, ref_date: datetime.date) -> datetime.date:
         dt = datetime.datetime(year=ref_date.year, month=ref_date.month, day=ref_date.day) - datetime.timedelta(days=self.count)
-        return dt.date()
+        return adjust_date_if_weekend(dt)
     
     def _diff_in_months(self, ref_date: datetime.date) -> datetime.date:
-        return ref_date - dateutil.relativedelta.relativedelta(months=self.count)
+        return adjust_date_if_weekend(ref_date - dateutil.relativedelta.relativedelta(months=self.count))
     
     def _diff_this_month(self, ref_date: datetime.date) -> datetime.date:
         dt = datetime.datetime(year=ref_date.year, month=ref_date.month, day=1)
@@ -131,7 +142,7 @@ def create_tickers_variation_dataframe(tickers: list[str], variation: VariationE
         datetime_conventions.datetime_to_string(end_date))
         for _, [start_date, end_date] in variation_data
     ]
-    df[column_label] = variation_column
+    df[column_label] = [numeric.set_precision(v, 2) for v in variation_column]
     df[variation.ref_interval] = variation_date_ranges
     return df
 
@@ -140,7 +151,7 @@ def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
     returns na_type.NAType if variation data cannot be computed from dataframe data
     '''
     logger.info(f"build_ticker_variation({ticker}, {variation})")
-    market_data: pd.DataFrame = get_market_data_instance()
+    market_data: dto.MarketData = get_market_data_instance()
     null_response = na_type.NAType, [na_type.NAType, na_type.NAType]
     ticker_data: dto.MarketData = dto.MarketData(market_data.get_ticker_df(ticker))
     dates: list[datetime.date] = ticker_data.get_dates()

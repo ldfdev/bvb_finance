@@ -3,9 +3,9 @@ NAType = "N/A"
 
 def na_type_check(func):
     def wrapper(*args, **kwargs):
-        if contains_na_type(args):
+        if contains_na_type(*args):
             return NAType
-        if contains_na_type(kwargs.values()):
+        if contains_na_type(*kwargs.values()):
             return NAType
         return func(*args, **kwargs)
         

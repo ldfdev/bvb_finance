@@ -10,3 +10,8 @@ def safe_prod(a: numbers.Number, b: numbers.Number) -> numbers.Number:
     if not all(isinstance(x, numbers.Number) for x in (a, b)):
         return na_type.NAType
     return a * b
+
+@na_type.na_type_check
+def set_precision(value: numbers.Number, decimals: int) -> typing.Union[numbers.Number, na_type.NAType]:
+    precision_str: str = '{:.' + str(decimals) + 'f}'
+    return float(precision_str.format(value))
