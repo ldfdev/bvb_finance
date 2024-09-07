@@ -28,7 +28,7 @@ class TestVariations(unittest.TestCase):
                 "volume": 100
             },
         ])
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
         df: pd.DataFrame = variations.build_portfolio_variations_data()
         df_columns: list[str] = list(df.columns)
         self.assertFalse("1 Day Var" in df_columns)
@@ -64,7 +64,7 @@ class TestVariations(unittest.TestCase):
             ],
             columns=["date", "symbol", "open", "high", "low", "close", "volume"]
         )
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
 
         df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.DAILY_VAR(1))
         columns = list(df.columns)
@@ -88,7 +88,7 @@ class TestVariations(unittest.TestCase):
             ],
             columns=["date", "symbol", "open", "high", "low", "close", "volume"]
         )
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
 
         df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.DAILY_VAR(1))
         columns = list(df.columns)
@@ -111,7 +111,7 @@ class TestVariations(unittest.TestCase):
             ],
             columns=["date", "symbol", "open", "high", "low", "close", "volume"]
         )
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
 
         df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.DAILY_VAR(7))
         columns = list(df.columns)
@@ -134,7 +134,7 @@ class TestVariations(unittest.TestCase):
             ],
             columns=["date", "symbol", "open", "high", "low", "close", "volume"]
         )
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
 
         df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.MONTHLY_VAR(3))
         columns = list(df.columns)
@@ -157,7 +157,7 @@ class TestVariations(unittest.TestCase):
             ],
             columns=["date", "symbol", "open", "high", "low", "close", "volume"]
         )
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
 
         df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.THIS_MONTH_VAR())
         print(df)
@@ -181,12 +181,12 @@ class TestVariations(unittest.TestCase):
             ],
             columns=["date", "symbol", "open", "high", "low", "close", "volume"]
         )
-        dto.MarketData.df = input
+        dto.MarketData.create_data(input)
 
         df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.YTD())
         print(df)
         columns = list(df.columns)
-        self._check_column_data(columns, ["symbol", "YTD Var"])
+        self._check_column_data(columns, ["symbol", "YTD Var", "Interval YTD Var"])
         self.assertEqual(len(df), 2)
         records: dict = df.to_dict(orient='records')
         self.assertEqual(records[0]["symbol"], "A1")
@@ -194,6 +194,10 @@ class TestVariations(unittest.TestCase):
         
         self.assertEqual(records[1]["symbol"], "B1")
         self._compare_floats(records[1]["YTD Var"], -32.84)
+
+        intervals = list(df["Interval YTD Var"])
+        self.assertEqual(intervals, ["02.01.2024 - 06.09.2024",
+                                     "06.01.2024 - 30.08.2024"])
     
     def _check_column_data(self, actual_column_data, expected_data):
         not_found = list()

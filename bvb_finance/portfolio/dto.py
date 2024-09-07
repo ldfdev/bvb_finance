@@ -1,6 +1,7 @@
 import datetime
 import numbers
 import typing
+import enum
 import json
 import dataclasses
 import operator
@@ -74,7 +75,17 @@ class PortfolioDict(typing.TypedDict):
     acquisition_price: float
 
 class MarketData:
-    df: pd.DataFrame
+    df: pd.DataFrame = pd.DataFrame()
+
+    class DateComparison(enum.Enum):
+        NOT_LT = enum.auto()
+        NOT_GT = enum.auto()
+
+    def __init__(self, df: pd.DataFrame=None):
+        if df is None:
+            self.df = MarketData.df
+        else:
+            self.df = df
 
     @classmethod
     def create_data(cls, data: pd.DataFrame):
@@ -83,31 +94,45 @@ class MarketData:
     def get_dates(self) -> list[datetime.date]:
         return list(self.df['date'])
 
-    def find_closest_date(self, date: datetime.date) -> datetime.date:
+    def find_dates_in_range(self, start_date: datetime.date, end_date: datetime.date) -> pd.DataFrame:
+        mask = (self.df['date'] >= start_date) & (self.df['date'] <= end_date)
+        in_range_df: pd.DataFrame = self.df.loc[mask]
+        return in_range_df
+
+    def find_closest_date(self, date: datetime.date, criterion = DateComparison.NOT_GT) -> datetime.date:
         '''
-        finds date that is as close as possible from date , not greater than date
+        finds date that is as close as possible from date , according to criterion
         '''
         dates = self.get_dates()
-        pos = bisect.bisect_left(dates, date)
-        # logger.info(f"Bisecting {dates} for {date} gives {pos}")
-        if pos >= len(dates):
-            # return a smaller dates since the serahced for is not available
-            return dates[-1]
-        if dates[pos] > date:
-            if pos == 0:
+        if criterion is self.DateComparison.NOT_GT:
+            pos = bisect.bisect_left(dates, date)
+            # logger.info(f"Bisecting {dates} for {date} gives {pos}")
+            if pos >= len(dates):
+                # return a smaller dates since the serahced for is not available
+                return dates[-1]
+            if dates[pos] > date:
+                if pos == 0:
+                    return
+                return dates[pos - 1]
+            result = dates[pos]
+            if (pos + 1 < len(dates)) and (dates[pos + 1] == date):
+                result = dates[pos + 1]
+            return result
+        else:
+            pos = bisect.bisect_right(dates, date)
+            if pos >= len(dates):
                 return
-            return dates[pos - 1]
-        result = dates[pos]
-        if (pos + 1 < len(dates)) and (dates[pos + 1] == date):
-            result = dates[pos + 1]
-        return result
+            return dates[pos]
 
     def get_newest_date(self) -> datetime.date:
         return self.get_dates()[-1]
 
+    def get_ticker_df(self, ticker: str) -> pd.DataFrame:
+        return self.df.loc[(self.df['symbol'] == ticker), :]
+
     def get_market_value(self, ticker: str, date: datetime.date = None) -> typing.Tuple[float, datetime.date]:
         chosen_date = self.get_newest_date() if date is None else self.find_closest_date(date)
-        market_value_df: pd.DataFrame = self.df.loc[(self.df['symbol'] == ticker) & (self.df['date'] == chosen_date), :]
+        market_value_df: pd.DataFrame = self.get_ticker_df(ticker).loc[(self.df['date'] == chosen_date), :]
         logger.info(f"Market value for {ticker} at {chosen_date} is {market_value_df} [closing price]")
         if len(market_value_df) == 0:
             return

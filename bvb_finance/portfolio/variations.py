@@ -16,7 +16,10 @@ from bvb_finance import portfolio
 logger = logging.getLogger()
 
 tickers = portfolio.tickers
-market_data: dto.MarketData = dto.MarketData()
+
+def get_market_data_instance():
+    market_data: dto.MarketData = dto.MarketData()
+    return market_data
 
 def variation_decorator(func):
     def wrapper(*args, **kwargs):
@@ -83,7 +86,8 @@ class VariationEnumMeta:
     def _diff_ytd(self, ref_date: datetime.date) -> datetime.date:
         dt = datetime.datetime(year=ref_date.year, month=1, day=1)
         # Assuming Jan 1, Jan 2 stock exchange is closed we use a buffer of 5 days
-        return common_datetime.get_bussiness_days_starting_at(dt, 5)[0]
+        first_business_day_in_year: datetime.date = common_datetime.get_bussiness_days_starting_at(dt, 5)[0]
+        return first_business_day_in_year
     
     def __repr__(self):
         cls = self.__class__.__name__
@@ -92,6 +96,7 @@ class VariationEnumMeta:
 
 
 def build_tickers_variations_data(variation: VariationEnumMeta) -> pd.DataFrame:
+    market_data: pd.DataFrame = get_market_data_instance()
     tickers = market_data.df['symbol']
     column_label: str = variation.header
     df: pd.DataFrame = pd.DataFrame()
@@ -113,17 +118,17 @@ def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
     returns na_type.NAType if variation data cannot be computed from dataframe data
     '''
     logger.info(f"build_ticker_variation({ticker}, {variation})")
+    market_data: pd.DataFrame = get_market_data_instance()
     null_response = na_type.NAType, [na_type.NAType, na_type.NAType]
-    ticker_data: pd.DataFrame = market_data.df.loc[(market_data.df['symbol'] == ticker), :]
-    dates: list[datetime.date] = list(ticker_data.loc[:, 'date'])
+    ticker_data: dto.MarketData = dto.MarketData(market_data.get_ticker_df(ticker))
+    dates: list[datetime.date] = ticker_data.get_dates()
     if not dates:
         logger.warning(f"Ticker {ticker} no 'date' in market_data dataframe")
         return null_response
     newest_date: datetime.date = dates[-1]
     start_date: datetime.date = variation.get_start_date(ref_date=newest_date)
 
-    mask = (ticker_data['date'] >= start_date) & (ticker_data['date'] <= newest_date)
-    prices_df: pd.DataFrame = ticker_data.loc[mask]
+    prices_df: pd.DataFrame = ticker_data.find_dates_in_range(start_date, newest_date)
     
     if len(prices_df) < 2:
         logger.warning(f"Ticker {ticker} Less than 2 values in market_data dataframe")
@@ -132,7 +137,10 @@ def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
     prices_df_start_date: datetime.date = prices_df.iloc[0]['date']
     if (start_date != prices_df_start_date):
         logger.warning(f"Ticker {ticker}  market_data dataframe start date is {prices_df_start_date}. Expected {start_date}")
-        return na_type.NAType, [start_date, newest_date]
+        if VariationEnum.YTD != variation.name:
+            return na_type.NAType, [start_date, newest_date]
+        logger.warning(f"Ticker {ticker}. Detected {variation.name} variation. will use start_date {prices_df_start_date} instead of {start_date}")
+        start_date = prices_df_start_date
     
     prices: list[float] = list(prices_df['close'])
     first_price, last_price = prices
@@ -144,7 +152,7 @@ def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
     return float(result), [start_date, newest_date]
 
 def build_portfolio_variations_data() -> pd.DataFrame:
-    market_data: dto.MarketData = dto.MarketData()
+    market_data: pd.DataFrame = get_market_data_instance()
 
     df: pd.DataFrame = pd.DataFrame()
     
