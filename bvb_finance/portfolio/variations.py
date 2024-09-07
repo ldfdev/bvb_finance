@@ -35,9 +35,17 @@ class VariationEnum(enum.Enum):
         self.count = count
         self.header = header
     
-    @variation_decorator
     def __call__(self, count=None):
-        pass 
+        """
+        the decorator does not capute the default count=None arg
+        it is needed to pass it explicitly
+        this is why I introduced the _wrapped_call function
+        """
+        return self._wrapped_call(count)
+    
+    @variation_decorator
+    def _wrapped_call(self, count):
+        pass
     
     def __eq__(self, other: str) -> bool:
         return self.name == other
@@ -115,9 +123,18 @@ def build_ticker_variation(ticker: str, variation: VariationEnumMeta):
     start_date: datetime.date = variation.get_start_date(ref_date=newest_date)
 
     mask = (ticker_data['date'] >= start_date) & (ticker_data['date'] <= newest_date)
-    prices: list[float] = list(ticker_data.loc[mask]['close'])
-    if len(prices) < 2:
+    prices_df: pd.DataFrame = ticker_data.loc[mask]
+    
+    if len(prices_df) < 2:
+        logger.warning(f"Ticker {ticker} Less than 2 values in market_data dataframe")
         return na_type.NAType, [start_date, newest_date]
+    
+    prices_df_start_date: datetime.date = prices_df.iloc[0]['date']
+    if (start_date != prices_df_start_date):
+        logger.warning(f"Ticker {ticker}  market_data dataframe start date is {prices_df_start_date}. Expected {start_date}")
+        return na_type.NAType, [start_date, newest_date]
+    
+    prices: list[float] = list(prices_df['close'])
     first_price, last_price = prices
     first_fraction = fractions.Fraction(first_price)
     last_fraction = fractions.Fraction(last_price)

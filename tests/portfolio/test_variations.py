@@ -147,6 +147,54 @@ class TestVariations(unittest.TestCase):
         self.assertEqual(records[1]["symbol"], "B1")
         self._compare_floats(records[1]["3 Month Var"], -32.84)
     
+    def test_tickers_variations_data_THIS_MONTH_VAR(self):
+        input: pd.DataFrame = pd.DataFrame([
+             [datetime.date(year=2024, month=9, day=2), "A1", 10, 20, 8, 9, 100],
+             [datetime.date(year=2024, month=9, day=6), "A1", 10, 20, 8, 18, 100],
+
+             [datetime.date(year=2023, month=8, day=1), "B1", 10, 20, 4, 14.89, 100],
+             [datetime.date(year=2023, month=8, day=30), "B1", 10, 20, 8, 10, 100],
+            ],
+            columns=["date", "symbol", "open", "high", "low", "close", "volume"]
+        )
+        dto.MarketData.df = input
+
+        df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.THIS_MONTH_VAR())
+        print(df)
+        columns = list(df.columns)
+        self._check_column_data(columns, ["symbol", "This Month Var"])
+        self.assertEqual(len(df), 2)
+        records: dict = df.to_dict(orient='records')
+        self.assertEqual(records[0]["symbol"], "A1")
+        self._compare_floats(records[0]["This Month Var"], 100.0)
+        
+        self.assertEqual(records[1]["symbol"], "B1")
+        self._compare_floats(records[1]["This Month Var"], -32.84)
+    
+    def test_tickers_variations_data_YTD(self):
+        input: pd.DataFrame = pd.DataFrame([
+             [datetime.date(year=2024, month=1, day=2), "A1", 10, 20, 8, 9, 100],
+             [datetime.date(year=2024, month=9, day=6), "A1", 10, 20, 8, 18, 100],
+
+             [datetime.date(year=2024, month=1, day=6), "B1", 10, 20, 4, 14.89, 100],
+             [datetime.date(year=2024, month=8, day=30), "B1", 10, 20, 8, 10, 100],
+            ],
+            columns=["date", "symbol", "open", "high", "low", "close", "volume"]
+        )
+        dto.MarketData.df = input
+
+        df: pd.DataFrame = variations.build_tickers_variations_data(variations.VariationEnum.YTD())
+        print(df)
+        columns = list(df.columns)
+        self._check_column_data(columns, ["symbol", "YTD Var"])
+        self.assertEqual(len(df), 2)
+        records: dict = df.to_dict(orient='records')
+        self.assertEqual(records[0]["symbol"], "A1")
+        self._compare_floats(records[0]["YTD Var"], 100.0)
+        
+        self.assertEqual(records[1]["symbol"], "B1")
+        self._compare_floats(records[1]["YTD Var"], -32.84)
+    
     def _check_column_data(self, actual_column_data, expected_data):
         not_found = list()
         for e in expected_data:
