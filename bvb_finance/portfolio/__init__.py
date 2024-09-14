@@ -1,12 +1,18 @@
 import typing
 import operator
+import plotly
+import numpy as np
+import plotly.express as px
 import pandas as pd
 from bvb_finance import logging
+from bvb_finance.common import na_type
 from bvb_finance.common import portfolio_loader
 from bvb_finance.common import numeric
 from bvb_finance.portfolio import dto
 from bvb_finance.portfolio import loaders
+from bvb_finance.portfolio import variations
 from bvb_finance.portfolio.acquistions_processor import AcquisitionsProcessor
+from bvb_finance.rest_api import portfolio as rest_api_portfolio 
 
 logger = logging.getLogger()
 
@@ -16,18 +22,13 @@ acquisitions: list[dto.Acquisition] = loaders.load_acquisitions_data(loaders.por
 
 NullableFLoat: typing.TypeVar = float | str
 
-
+@na_type.na_type_check
 def compute_roi(initial_sum: NullableFLoat, final_sum: NullableFLoat) -> NullableFLoat:
-    if isinstance(initial_sum, str):
-        return "N/A"
-    if isinstance(final_sum, str):
-        return "N/A"
     return (final_sum / initial_sum - 1) * 100
 
 def obtain_portfolio_data() -> list[dto.UIDataDict]:
     logger.info("Gathering acquisitions data")
-    acquisitions_df: pd.DataFrame = loaders.load_acquisitions_data(loaders.portfolio_acquisition_details)
-    acquisitions: list[dto.Acquisition] = AcquisitionsProcessor.process_acquisitions_from_dataframe(acquisitions_df)
+    acquisitions: list[dto.Acquisition] = rest_api_portfolio.get_acquisitions_data()
 
     logger.info("Gathering stock splits data")
     stock_split_df: pd.DataFrame = loaders.load_stock_splits_data(loaders.portfolio_stock_splits)
@@ -62,3 +63,48 @@ def obtain_portfolio_data() -> list[dto.UIDataDict]:
             "roi": compute_roi(invested_sum, compamy_market_vlue),
         })
     return ui_data
+
+Figure = plotly.graph_objs._figure.Figure
+
+def build_portfoloio_figures(uidata: list[dto.UIDataDict]) -> Figure:
+    df: pd.DataFrame = pd.DataFrame({
+        'symbol': [ui["symbol"] for ui in uidata],
+        "invested_sum": [ui["invested_sum"] for ui in uidata],
+        "market_value": [ui["market_value"] for ui in uidata],
+        "roi": [ui["roi"] for ui in uidata],
+    })
+
+    df['Profitability'] = np.where(df["roi"]<0, 'Loss', 'Profit')
+    df = df.sort_values(by=['roi'], ascending=False)
+    roifig = px.bar(df, x="symbol", y="roi", color=df['Profitability'], title="Portfolio by Return on Investment")
+    roifig.update_traces(hovertemplate=
+                         '<b>%{x}</b>'+
+                         '<br><b>roi</b>: %{y:.2f}%<br>'
+    )
+    roifig.update_layout(hovermode="x")
+    return roifig
+
+def build_variations() -> typing.Iterable[typing.Tuple[Figure, pd.DataFrame]]:
+    
+    variations_of_interest: list[variations.VariationEnumMeta] = [
+        variations.VariationEnum.DAILY_VAR(1),
+        variations.VariationEnum.DAILY_VAR(7),
+        variations.VariationEnum.MONTHLY_VAR(1),
+        variations.VariationEnum.MONTHLY_VAR(3),
+        variations.VariationEnum.YTD()
+    ]
+    for variationEnum in variations_of_interest:
+        variation_df: pd.DataFrame = variations.build_tickers_variations_data(variationEnum)
+        variation_df = variation_df.sort_values(by=[variationEnum.header], ascending=False)
+
+        varfig = px.bar(variation_df, x="symbol", y=variationEnum.header,  title=f"Tickers Variation {variationEnum.header}")
+        varfig.update_traces(
+            customdata=np.array(variation_df[variationEnum.ref_interval]),
+            hovertemplate=
+                            '<b>%{x}</b>'+
+                            '<br><b>var</b>: %{y:.2f}%<br>'+
+                            '<br><b>' + variationEnum.ref_interval + '</b>: %{customdata:.2f}%<br>'
+        )
+        varfig.update_layout(hovermode="x")
+
+        yield varfig, variation_df

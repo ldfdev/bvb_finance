@@ -1,4 +1,5 @@
 import datetime
+import enum
 import pandas as pd
 import typing
 import concurrent.futures
@@ -12,6 +13,12 @@ logger = logging.getLogger()
 
 TradingViev = TvDatafeed()
 TRADINGVIEW_BVB_SYMBOL='BVB'
+# cannot read more than this via tvDataFeed API
+TRADINGVIEW_MAX_RECORDS = 500
+
+class TradingViewHistoricalDataFrequency(enum.Enum):
+    WEEKLY = Interval.in_weekly
+    DAILY = Interval.in_daily
 
 def perform_data_transfomration(df: pd.DataFrame):
     columns = list(df.columns)
@@ -24,11 +31,11 @@ def perform_data_transfomration(df: pd.DataFrame):
         # if date is saved as str convert it to datetime.date
         df['date'] = df['date'].apply(dto.HistoricalData.convert_date_from_str)
 
-def download_trading_view_data(ticker: str) -> pd.DataFrame:
+def download_trading_view_data(ticker: str, frequency=TradingViewHistoricalDataFrequency.WEEKLY) -> pd.DataFrame:
     df: pd.DataFrame = TradingViev.get_hist(
         symbol=ticker,
         exchange=TRADINGVIEW_BVB_SYMBOL,
-        interval=Interval.in_weekly,
+        interval=frequency.value,
         n_bars=500)
     if df is None:
         logger.warn(f"Failed to download trading view data for {ticker}")
@@ -64,6 +71,7 @@ def is_sorted_by_date(date_list: list[datetime.date]) -> bool:
     return sorted_date_list == date_list
 
 def merge_dataframes(first: pd.DataFrame, second: pd.DataFrame) -> pd.DataFrame:
+    logger.info(f"Merging dataframe with lenght {len(first)} with dataframe with length {len(second)}")
     if first.empty:
         return second
     if second.empty:
@@ -93,15 +101,25 @@ def show_brief(dataframe: pd.DataFrame) -> pd.DataFrame:
     # logger.info(f"DateTime type {brief_df.loc[0]['date']} = {type(brief_df.loc[0]['date'])}")
         
 def download_and_merge_if_exists_historical_data_single_ticker(ticker: str) -> pd.DataFrame:
+    logger.info("Downloading WEEKLY data")
     new_df: pd.DataFrame = download_trading_view_data(ticker)
     if new_df.empty:
         logger.warn(f"download_and_merge operation failed for ticker {ticker}: Failed to download Trading View data")
         return new_df
     perform_data_transfomration(new_df)
     
-    logger.info("Downloaded dataframe")
+    logger.info("Downloading WEEKLY data")
+    daily_data_df: pd.DataFrame = download_trading_view_data(ticker, frequency=TradingViewHistoricalDataFrequency.DAILY)
+    perform_data_transfomration(daily_data_df)
+
+    logger.info("Downloaded WEEKLY dataframe")
     show_brief(new_df)
     
+    logger.info("Downloaded DAILY dataframe")
+    show_brief(daily_data_df)
+
+    new_df = merge_dataframes(new_df, daily_data_df)
+
     file = get_portfolio_historical_data_csv(ticker)
     existing_df = pd.DataFrame()
     if file.exists():
@@ -129,7 +147,19 @@ def worker_fun(ticker: str) -> typing.Optional[str]:
     dataframe: pd.DataFrame = download_and_merge_if_exists_historical_data_single_ticker(ticker)
     if dataframe.empty:
         return ticker
-    
+
+def compute_sparsity(dataframe: pd.DataFrame) -> int:
+    most_recent: pd.DataFrame = dataframe.tail(500)
+    oldest: pd.Series = most_recent.iloc[0]
+    newest: pd.Series = most_recent.iloc[-1]
+    business_days: pd.DatetimeIndex = pd.bdate_range(oldest['date'], newest['date'])[-500]
+    common_dates: list[datetime.date] = [b_day.date() for b_day in business_days.to_pydatetime() if b_day.date() in list(dataframe['date'])]
+    sparsity = int(len(common_dates) . len(business_days) * 100)
+    logger.info(f"Over most recent {len(business_days)} business days [{business_days[0]}] - [{business_days[-1]}]" +
+                f" {common_dates} days are saved in teh dataframe")
+    return sparsity
+
+
 def download_and_merge_historical_data(tickers: list[str]) -> list[str]:
     failed_tickers: list[str] = list()
     # if the num of workers is 10 we get 429 too many requests error status code

@@ -316,6 +316,28 @@ class TestPortfolio(unittest.TestCase):
         (value,_) = market_data.get_market_value("A1")
         self.assertEqual(value, 20250112)
 
+        closest: datetime.date = market_data.find_closest_date(datetime.date(year=2014, month=12, day=20),
+                                                               criterion=dto.MarketData.DateComparison.NOT_LT)
+        self.assertEqual(closest.year, 2014)
+        self.assertEqual(closest.month, 12)
+        self.assertEqual(closest.day, 22)
+
+        closest: datetime.date = market_data.find_closest_date(datetime.date(year=2014, month=12, day=27),
+                                                               criterion=dto.MarketData.DateComparison.NOT_LT)
+        self.assertEqual(closest.year, 2014)
+        self.assertEqual(closest.month, 12)
+        self.assertEqual(closest.day, 29)
+
+        closest: datetime.date = market_data.find_closest_date(datetime.date(year=2014, month=12, day=29),
+                                                               criterion=dto.MarketData.DateComparison.NOT_LT)
+        self.assertEqual(closest.year, 2015)
+        self.assertEqual(closest.month, 1)
+        self.assertEqual(closest.day, 5)
+
+        closest: datetime.date = market_data.find_closest_date(datetime.date(year=2015, month=12, day=29),
+                                                               criterion=dto.MarketData.DateComparison.NOT_LT)
+        self.assertEqual(closest, None)
+
     def test_group_acquisitions_data_no_stock_splits_same_date(self):
         acquisitions: list[dto.Acquisition] = [
             {

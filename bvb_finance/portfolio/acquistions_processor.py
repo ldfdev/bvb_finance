@@ -31,11 +31,14 @@ class AcquisitionsProcessor:
 
     @classmethod
     def process_acquisitions_from_dataframe(cls, df: pd.DataFrame) -> list[dto.Acquisition]:
+        # columns are Data	Simbol	Cantitate	Pret	Comision
+        file_columns = 'Data	Simbol	Cantitate	Pret	Comision'.split('\t')
+        
+        if df.empty and (not list(df.columns)):
+            df = pd.DataFrame(columns=file_columns)
         df['Pret'] = df['Pret'].apply(dto.Acquisition.convert_price_to_float)
         df['Data'] = df['Data'].apply(dto.Acquisition.convert_date_from_str)
 
-        # columns are Data	Simbol	Cantitate	Pret	Comision
-        file_columns = 'Data	Simbol	Cantitate	Pret	Comision'.split('\t')
         new_coluns = [key for key in typing.get_type_hints(dto.AcquisitionDict)]
         column_replacement = {
             old: new for old, new in zip(file_columns, new_coluns)

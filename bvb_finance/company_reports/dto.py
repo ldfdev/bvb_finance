@@ -7,19 +7,9 @@ import pathlib
 
 from bvb_finance import datetime_conventions
 from bvb_finance.common import dto as common_dto
-import bvb_finance
 
 logger = logging.getLogger()
 
-
-class MongoDao:
-    def serialize(self):
-        str_dict = json.dumps(self, cls=common_dto.JSONEncoder, indent=4, sort_keys=True)
-        return json.loads(str_dict)
-
-    @staticmethod
-    def deserialize(mongo_object: typing.Dict):
-        raise NotImplementedError
 
 @dataclasses.dataclass
 class BVB_Report_Dto:
@@ -27,7 +17,7 @@ class BVB_Report_Dto:
     documents: list['Document_Dto'] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
-class Website_Financial_Document(MongoDao):
+class Website_Financial_Document(common_dto.SerializationObject):
     description: str = None
     url: str = None
     modification_date: datetime.date = None
@@ -58,7 +48,7 @@ class Website_Financial_Document(MongoDao):
         return py_object
 
 @dataclasses.dataclass
-class Website_Company(MongoDao):
+class Website_Company(common_dto.SerializationObject):
     name: str = None
     ticker: str = None
     documents: list[Website_Financial_Document] = dataclasses.field(default_factory=list)
