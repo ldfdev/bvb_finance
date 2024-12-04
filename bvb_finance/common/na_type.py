@@ -1,5 +1,4 @@
-
-NAType = "N/A"
+NAType = "n/a"
 
 def na_type_check(func):
     def wrapper(*args, **kwargs):

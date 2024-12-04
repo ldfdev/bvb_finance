@@ -1,0 +1,12 @@
+.news-source-button {
+    transition-duration: 0.4s;
+    padding: 5px;
+    margin: 5px;
+    border-radius: 12px;
+    font-size: 20px;
+}
+
+.news-source-button:hover {
+    text-decoration: solid;
+    transform: scale(1.2);
+}
