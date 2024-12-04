@@ -1,4 +1,6 @@
 import typing
+import numbers
+import datetime
 import operator
 import plotly
 import numpy as np
@@ -26,7 +28,7 @@ NullableFLoat: typing.TypeVar = float | str
 def compute_roi(initial_sum: NullableFLoat, final_sum: NullableFLoat) -> NullableFLoat:
     return (final_sum / initial_sum - 1) * 100
 
-def obtain_portfolio_data() -> list[dto.UIDataDict]:
+def obtain_portfolio_data(end_date: datetime.date) -> list[dto.UIDataDict]:
     logger.info("Gathering acquisitions data")
     acquisitions: list[dto.Acquisition] = rest_api_portfolio.get_acquisitions_data()
 
@@ -43,13 +45,13 @@ def obtain_portfolio_data() -> list[dto.UIDataDict]:
     
     ui_data: list[dto.UIDataDict] = list()
 
-    logger.info("Loading market data")
+    logger.info(f"Loading market data up to {end_date}")
     market_data: dto.MarketData = loaders.load_historical_data_many_tickers(tickers)
     for grouped_acquisition in grouped_acquisitions:
         ticker: str = grouped_acquisition["symbol"]
         invested_sum: float = grouped_acquisition["invested_sum"]
-        market_value, market_value_date = "N/A", "N/A"
-        data = market_data.get_market_value(ticker)
+        market_value, market_value_date = na_type.NAType, na_type.NAType
+        data = market_data.get_market_value(ticker, date=end_date)
         if data:
             market_value, market_value_date = data
         compamy_market_vlue: float = numeric.safe_prod(market_value, grouped_acquisition["num_of_shares"])
@@ -73,10 +75,31 @@ def build_portfoloio_figures(uidata: list[dto.UIDataDict]) -> Figure:
         "market_value": [ui["market_value"] for ui in uidata],
         "roi": [ui["roi"] for ui in uidata],
     })
+    def build_profitability(item: typing.Union[str, numbers.Number]) -> str:
+        """Indicates whether item represents a 
+         - Loss
+         - Profit
+         - n/a
+        """
+        if item == na_type.NAType:
+            return na_type.NAType
+        if item < 0:
+            return 'Loss'
+        return 'Profit'
+    
+    df['Profitability'] = pd.Series(
+        [build_profitability(item)for item in df["roi"]]
+    )
 
-    df['Profitability'] = np.where(df["roi"]<0, 'Loss', 'Profit')
-    df = df.sort_values(by=['roi'], ascending=False)
-    roifig = px.bar(df, x="symbol", y="roi", color=df['Profitability'], title="Portfolio by Return on Investment")
+    # sort by roi but handle n/a values
+    rows_roi_is_na = df[df['roi'] == na_type.NAType]
+    # Remaining rows
+    remaining_rows = df[~df.index.isin(rows_roi_is_na.index)]
+    remaining_rows.sort_values(by=['roi'], ascending=False)
+
+    # Concatenate the DataFrames
+    sorted_df = pd.concat([remaining_rows, rows_roi_is_na], ignore_index=True)
+    roifig = px.bar(sorted_df, x="symbol", y="roi", color=df['Profitability'], title="Portfolio by Return on Investment")
     roifig.update_traces(hovertemplate=
                          '<b>%{x}</b>'+
                          '<br><b>roi</b>: %{y:.2f}%<br>'

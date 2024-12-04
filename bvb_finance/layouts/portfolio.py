@@ -58,7 +58,13 @@ def get_layout():
     return dash.html.Div([
         dash.html.H4(children="My Acquisitions"),
         dash.html.Div([
-                get_card_from_acquisition(a) for a in acquisitions
+                dbc.Row(
+                    [
+                        dbc.Col(get_card_from_acquisition(a), width=2) for a in acquisitions
+                    ],
+                    className="overflow-x-auto"
+                )
+                
             ],
             style = {
                 "width": "90%",
@@ -70,6 +76,12 @@ def get_layout():
                 "align-items": "left",
                 # "justify-content": "center"
             }
+        ),
+        dash.dcc.DatePickerSingle(
+            id='portfolio-market-value-end-date',
+            min_date_allowed=datetime.date(2024, 1, 1),
+            max_date_allowed=datetime.datetime.now(),
+            date=datetime.datetime.now().date()
         ),
         dash.html.Div(id='portfolio-status-div',
                  children="Press 'Confirm choice' to load portfolio data"),
@@ -100,11 +112,15 @@ def get_layout():
     dash.Output(component_id='portfolio-statistics-graph-div', component_property='children', allow_duplicate=True),
     dash.Output(component_id='tickers-variation-graph-div', component_property='children', allow_duplicate=True),
     dash.Input(component_id='portfolio-confirm-choice-button', component_property='n_clicks'),
+    dash.Input(component_id='portfolio-market-value-end-date', component_property='date'),
     prevent_initial_call=True,
     running=common.disable_component_till_completion('portfolio-confirm-choice-button')
 )
-def load_market_cap_data_callback(n_clicks):
-    ui_payload: list[dto.UIDataDict] = portfolio.obtain_portfolio_data()
+def load_market_cap_data_callback(n_clicks, portfolio_end_date_str: str):
+    # portfolio_end_date is of the format 2024-09-22T19:08:08.472885
+    portfolio_end_date: datetime.date = datetime.datetime.strptime(portfolio_end_date_str, "%Y-%m-%d").date()
+
+    ui_payload: list[dto.UIDataDict] = portfolio.obtain_portfolio_data(portfolio_end_date)
     sum_invested = numeric.safe_sum(u["invested_sum"] for u in ui_payload)
     market_value = numeric.safe_sum(u["market_value"] for u in ui_payload)
     data_actualizare = list(set(datetime_conventions.to_bvb_finance_date_format(u["market_value_date"]) for u in ui_payload))
